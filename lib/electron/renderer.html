@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta
+		http-equiv="Content-Security-Policy"
+		content="default-src 'self'; img-src 'self' file: data:; script-src 'self'; style-src 'self' 'unsafe-inline'"
+	>
+	<title>ZuzuScript</title>
+	<style>
+		:root {
+			color-scheme: light dark;
+			font: 14px system-ui, sans-serif;
+		}
+
+		body {
+			box-sizing: border-box;
+			margin: 0;
+			min-height: 100vh;
+			padding: 16px;
+		}
+
+		.zuzu-vbox,
+		.zuzu-hbox {
+			display: flex;
+			gap: 8px;
+		}
+
+		.zuzu-vbox {
+			flex-direction: column;
+		}
+
+		.zuzu-hbox {
+			align-items: center;
+			flex-direction: row;
+		}
+
+		input,
+		button,
+		select,
+		textarea {
+			font: inherit;
+		}
+
+		fieldset {
+			border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+			border-radius: 6px;
+			padding: 10px;
+		}
+
+		legend {
+			padding: 0 4px;
+		}
+
+		img {
+			max-width: 100%;
+		}
+
+		.zuzu-check-control {
+			align-items: center;
+			display: inline-flex;
+			gap: 6px;
+		}
+
+		.zuzu-vertical-separator {
+			align-self: stretch;
+			border: 0;
+			border-left: 1px solid currentColor;
+			margin: 0 8px;
+		}
+
+		.zuzu-listview ul,
+		.zuzu-treeview ul {
+			list-style: none;
+			margin: 0;
+			padding: 0;
+		}
+
+		.zuzu-listview li,
+		.zuzu-treeview summary,
+		.zuzu-treeview button {
+			border-radius: 4px;
+			cursor: default;
+			padding: 3px 6px;
+		}
+
+		.zuzu-listview .selected,
+		.zuzu-treeview .selected {
+			background: Highlight;
+			color: HighlightText;
+		}
+
+		.zuzu-treeview button {
+			background: transparent;
+			border: 0;
+			color: inherit;
+			display: block;
+			text-align: left;
+			width: 100%;
+		}
+
+		.zuzu-tabs {
+			border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+			border-radius: 6px;
+			padding: 8px;
+		}
+
+		.zuzu-tabs details {
+			margin: 0 0 6px;
+		}
+
+		.zuzu-tabs details > :not(summary) {
+			margin-left: 1em;
+		}
+	</style>
+</head>
+<body>
+	<div id="app"></div>
+	<script src="../gui/dom-renderer.js"></script>
+	<script src="./renderer.js"></script>
+</body>
+</html>

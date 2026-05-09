@@ -1,0 +1,32 @@
+from std/gui/objects import Window, VBox, Label, Input, Button;
+
+let name := new Input(
+	id: "name",
+	placeholder: "Name",
+);
+let button := new Button(
+	id: "hello",
+	text: "Hello",
+);
+let w := new Window(
+	title: "ZuzuScript Electron",
+	width: 420,
+	height: 180,
+	children: [
+		new VBox(
+			padding: 16,
+			gap: 10,
+			children: [
+				new Label( text: "Minimal zuzu-js Electron GUI" ),
+				name,
+				button,
+			],
+		),
+	],
+);
+
+button.click( function () {
+	say( "Hello " _ ( name.value() ?: "there" ) );
+} );
+
+w.show();

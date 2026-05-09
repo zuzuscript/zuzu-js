@@ -1,0 +1,571 @@
+#!/usr/bin/env node
+'use strict';
+
+const fs = require( 'node:fs' );
+const path = require( 'node:path' );
+const { collectStaticImports } = require( '../lib/compiler' );
+const { stripPod } = require( '../lib/transpiler' );
+
+const repoRoot = path.resolve( __dirname, '..', '..', '..' );
+const jsRoot = path.join( repoRoot, 'extras', 'zuzu-js', 'modules' );
+const pureRoot = path.join( repoRoot, 'modules' );
+
+const DEFAULT_RUNTIME_JS_MODULES = [
+	'javascript',
+	'std/string',
+	'std/string/base64',
+	'std/time',
+	'std/marshal',
+	'std/task',
+	'std/worker',
+	'std/secure',
+	'std/data/json',
+	'std/data/yaml',
+	'std/data/csv',
+	'std/data/xml',
+	'std/digest/md5',
+	'std/digest/sha',
+	'std/net/http',
+	'std/math',
+	'std/math/bignum',
+	'std/eval',
+	'std/gui/objects',
+	'std/tui',
+	'std/internals',
+	'std/net/url',
+];
+
+const OPTIONAL_RUNTIME_JS_MODULES = [
+	'std/net/smtp',
+];
+
+const DEFAULT_PURE_ZUZU_MODULES = [
+	'std/colour',
+	'std/result',
+	'std/string/quoted_printable',
+	'std/gui',
+	'std/gui/dialogue',
+	'std/uuid',
+	'std/dump',
+	'std/data/kdl',
+	'std/data/kdl/json',
+	'std/data/kdl/xml',
+	'std/data/xml/escape',
+	'std/path/simple',
+	'std/path/z',
+	'std/path/z/context',
+	'std/path/z/evaluate',
+	'std/path/z/functions',
+	'std/path/z/lexer',
+	'std/path/z/node',
+	'std/path/z/operators',
+	'std/path/z/parser',
+	'std/path/zz',
+	'std/path/zz/functions',
+	'std/path/zz/operators',
+];
+
+const DEFAULT_RUNTIME_JS_SET = new Set( DEFAULT_RUNTIME_JS_MODULES );
+const RUNTIME_JS_SET = new Set( [
+	...DEFAULT_RUNTIME_JS_MODULES,
+	...OPTIONAL_RUNTIME_JS_MODULES,
+] );
+
+const HELP_TEXT = [
+	'Usage: generate-browser-stdlib [OUT_DIR] [OPTIONS]',
+	'',
+	'Generate browser stdlib support files for the ZuzuScript JS browser bundle.',
+	'',
+	'Options:',
+	'  -M DIR                 Add a pure ZuzuScript module directory.',
+	'  -MDIR                  Add a pure ZuzuScript module directory.',
+	'  --include MODULE       Include an additional module.',
+	'  --include=MODULE       Include an additional module.',
+	'  --exclude MODULE       Exclude a bundled module.',
+	'  --exclude=MODULE       Exclude a bundled module.',
+	'  --help                 Show this help text.',
+	'',
+	'Examples:',
+	'  generate-browser-stdlib /tmp/zuzu-browser',
+	'  generate-browser-stdlib /tmp/zuzu-browser -M lib/zuzu --include=app/main',
+].join( '\n' );
+
+function usageError( message ) {
+	console.error( `generate-browser-stdlib: ${message}` );
+	process.exit( 1 );
+}
+
+function printHelp() {
+	console.log( HELP_TEXT );
+}
+
+function normalizeModuleName( value, context ) {
+	const name = String( value ?? '' ).trim();
+	if ( name === '' ) {
+		usageError( `${context} must not be empty` );
+	}
+	if (
+		path.isAbsolute( name )
+		|| name.startsWith( '/' )
+		|| /^[A-Za-z]:[\\/]/u.test( name )
+	) {
+		usageError( `${context} must not be an absolute path: ${name}` );
+	}
+	const parts = name.split( '/' );
+	if ( parts.some( (part) => part === '' ) ) {
+		usageError( `${context} contains an empty path segment: ${name}` );
+	}
+	if ( parts.some( (part) => part === '..' ) ) {
+		usageError( `${context} must not contain '..' segments: ${name}` );
+	}
+	return name.replace( /\.(?:zzm|zzs|js)$/u, '' );
+}
+
+function parseArgs( argv ) {
+	const options = {
+		outDir: null,
+		moduleRoots: [],
+		includes: [],
+		excludes: new Set(),
+	};
+	for ( let i = 0; i < argv.length; i++ ) {
+		const arg = argv[i];
+		if ( arg === '--help' ) {
+			printHelp();
+			process.exit( 0 );
+		}
+		else if ( arg === '-M' ) {
+			if ( i + 1 >= argv.length ) {
+				usageError( '-M requires a directory value' );
+			}
+			options.moduleRoots.push( path.resolve( argv[++i] ) );
+		}
+		else if ( arg.startsWith( '-M' ) && arg.length > 2 ) {
+			options.moduleRoots.push( path.resolve( arg.slice( 2 ) ) );
+		}
+		else if ( arg === '--include' ) {
+			if ( i + 1 >= argv.length ) {
+				usageError( '--include requires a module name' );
+			}
+			options.includes.push(
+				normalizeModuleName( argv[++i], '--include' )
+			);
+		}
+		else if ( arg.startsWith( '--include=' ) ) {
+			options.includes.push(
+				normalizeModuleName( arg.slice( '--include='.length ), '--include' )
+			);
+		}
+		else if ( arg === '--exclude' ) {
+			if ( i + 1 >= argv.length ) {
+				usageError( '--exclude requires a module name' );
+			}
+			options.excludes.add(
+				normalizeModuleName( argv[++i], '--exclude' )
+			);
+		}
+		else if ( arg.startsWith( '--exclude=' ) ) {
+			options.excludes.add(
+				normalizeModuleName( arg.slice( '--exclude='.length ), '--exclude' )
+			);
+		}
+		else if ( arg.startsWith( '-' ) ) {
+			usageError( `unknown option: ${arg}` );
+		}
+		else if ( options.outDir === null ) {
+			options.outDir = path.resolve( arg );
+		}
+		else {
+			usageError( `unexpected positional argument: ${arg}` );
+		}
+	}
+	options.outDir ||= path.join( repoRoot, 'extras', 'zuzu-js', 'dist' );
+	return options;
+}
+
+function generatedPathForJsModule( logicalName ) {
+	return `/extras/zuzu-js/modules/${logicalName}.js`;
+}
+
+function generatedPathForRepoPureModule( logicalName, ext ) {
+	return `/modules/${logicalName}${ext}`;
+}
+
+function generatedPathForCustomPureModule( rootIndex, logicalName, ext ) {
+	return `/__zuzu_browser_modules__/${rootIndex}/${logicalName}${ext}`;
+}
+
+function requirePathFromOutDir( outDir, target ) {
+	let requirePath = path.relative( outDir, target ).replace( /\\/g, '/' );
+	if ( !requirePath.startsWith( '.' ) ) {
+		requirePath = `./${requirePath}`;
+	}
+	return requirePath;
+}
+
+function sourceIsPodOnly( source ) {
+	return stripPod( source ).trim() === '';
+}
+
+function fileIfExists( filename ) {
+	return fs.existsSync( filename ) && fs.statSync( filename ).isFile()
+		? filename
+		: null;
+}
+
+function resolveRuntimeModule( logicalName ) {
+	if ( !RUNTIME_JS_SET.has( logicalName ) ) {
+		return null;
+	}
+	const sourcePath = path.join( jsRoot, `${logicalName}.js` );
+	if ( !fileIfExists( sourcePath ) ) {
+		throw new Error( `Missing browser JS std module: ${sourcePath}` );
+	}
+	return {
+		logicalName,
+		type: 'runtime-js',
+		sourcePath,
+		generatedPath: generatedPathForJsModule( logicalName ),
+	};
+}
+
+function resolvePureModule( logicalName, moduleRoots ) {
+	const roots = [ pureRoot, ...moduleRoots ];
+	for ( let i = 0; i < roots.length; i++ ) {
+		for ( const ext of [ '.zzm', '.zzs' ] ) {
+			const sourcePath = fileIfExists(
+				path.join( roots[i], `${logicalName}${ext}` )
+			);
+			if ( sourcePath ) {
+				const source = fs.readFileSync( sourcePath, 'utf8' );
+				if ( i === 0 && sourceIsPodOnly( source ) ) {
+					throw new Error(
+						`Module '${logicalName}' is runtime-supported and is not available in the browser bundle`
+					);
+				}
+				return {
+					logicalName,
+					type: 'pure-zuzu',
+					sourcePath,
+					source,
+					generatedPath: i === 0
+						? generatedPathForRepoPureModule( logicalName, ext )
+						: generatedPathForCustomPureModule( i - 1, logicalName, ext ),
+				};
+			}
+		}
+	}
+	return null;
+}
+
+function resolveModule( logicalName, moduleRoots ) {
+	return resolveRuntimeModule( logicalName )
+		|| resolvePureModule( logicalName, moduleRoots );
+}
+
+function resolveImportedModuleName( value, requiringLogicalName ) {
+	const normalized = normalizeModuleName( value, 'import module' );
+	if ( !normalized.startsWith( '.' ) ) {
+		return normalized;
+	}
+	const baseDir = requiringLogicalName.includes( '/' )
+		? path.posix.dirname( requiringLogicalName )
+		: '';
+	const logicalName = path.posix.normalize(
+		path.posix.join( baseDir, normalized )
+	);
+	if ( logicalName === '.' || logicalName.startsWith( '../' ) ) {
+		usageError(
+			`import module must not escape the requiring module directory: ${value}`
+		);
+	}
+	return normalizeModuleName( logicalName, 'import module' );
+}
+
+function collectImports( source, requiringLogicalName ) {
+	const imports = [];
+	for ( const imported of collectStaticImports( source ) ) {
+		try {
+			imports.push( {
+				logicalName: resolveImportedModuleName(
+					imported.source,
+					requiringLogicalName
+				),
+				tryMode: Boolean( imported.tryMode ),
+			} );
+		}
+		catch ( err ) {
+			throw new Error( `${err.message} in import '${imported.source}'` );
+		}
+	}
+	return imports;
+}
+
+function resolveModuleSafe( logicalName, moduleRoots ) {
+	try {
+		return resolveModule( logicalName, moduleRoots );
+	}
+	catch ( _err ) {
+		return null;
+	}
+}
+
+function excludedImportError( importedName, requiringModule ) {
+	return new Error(
+		`Excluded required module '${importedName}' required by '${requiringModule.logicalName}' in ${requiringModule.sourcePath}`
+	);
+}
+
+function checkExcludedDependencies( modules, options ) {
+	for ( const mod of modules ) {
+		if ( mod.type !== 'pure-zuzu' ) {
+			continue;
+		}
+		for ( const imported of collectImports( mod.source, mod.logicalName ) ) {
+			if ( !options.excludes.has( imported.logicalName ) ) {
+				continue;
+			}
+			if (
+				imported.tryMode
+				&& !resolveModuleSafe( imported.logicalName, options.moduleRoots )
+			) {
+				continue;
+			}
+			throw excludedImportError( imported.logicalName, mod );
+		}
+	}
+}
+
+function discoverModules( options ) {
+	const modules = new Map();
+	const excludedDefaults = new Set();
+	const queue = [];
+	const queued = new Map();
+
+	function enqueue( logicalName, requestedBy = null, discover = true ) {
+		if ( modules.has( logicalName ) ) {
+			return;
+		}
+		const pending = queued.get( logicalName );
+		if ( pending ) {
+			pending.discover ||= discover;
+			pending.requestedBy ||= requestedBy;
+			return;
+		}
+		const item = { logicalName, requestedBy, discover };
+		queued.set( logicalName, item );
+		queue.push( item );
+	}
+
+	for ( const logicalName of DEFAULT_RUNTIME_JS_MODULES ) {
+		if ( options.excludes.has( logicalName ) ) {
+			excludedDefaults.add( logicalName );
+		}
+		else {
+			enqueue( logicalName, null, false );
+		}
+	}
+	for ( const logicalName of DEFAULT_PURE_ZUZU_MODULES ) {
+		if ( options.excludes.has( logicalName ) ) {
+			excludedDefaults.add( logicalName );
+		}
+		else {
+			enqueue( logicalName, null, false );
+		}
+	}
+	for ( const logicalName of options.includes ) {
+		enqueue( logicalName, null, true );
+	}
+
+	while ( queue.length > 0 ) {
+		const request = queue.shift();
+		queued.delete( request.logicalName );
+		if ( modules.has( request.logicalName ) ) {
+			continue;
+		}
+		const resolved = resolveModule( request.logicalName, options.moduleRoots );
+		if ( !resolved ) {
+			const from = request.requestedBy
+				? ` required by '${request.requestedBy.logicalName}' in ${request.requestedBy.sourcePath}`
+				: '';
+			throw new Error(
+				`Unable to resolve browser module '${request.logicalName}'${from}`
+			);
+		}
+		if ( options.excludes.has( request.logicalName ) ) {
+			const from = request.requestedBy
+				? `'${request.requestedBy.logicalName}' (${request.requestedBy.sourcePath})`
+				: 'explicit include/default set';
+			throw new Error(
+				`Excluded required module '${request.logicalName}' required by ${from}`
+			);
+		}
+		modules.set( request.logicalName, resolved );
+		if ( !request.discover || resolved.type !== 'pure-zuzu' ) {
+			continue;
+		}
+		for ( const imported of collectImports( resolved.source, resolved.logicalName ) ) {
+			if ( options.excludes.has( imported.logicalName ) ) {
+				if (
+					imported.tryMode
+					&& !resolveModuleSafe( imported.logicalName, options.moduleRoots )
+				) {
+					continue;
+				}
+				throw excludedImportError( imported.logicalName, resolved );
+			}
+			let dependency;
+			try {
+				dependency = resolveModule(
+					imported.logicalName,
+					options.moduleRoots
+				);
+			}
+			catch ( err ) {
+				if ( imported.tryMode ) {
+					continue;
+				}
+				throw err;
+			}
+			if ( !dependency ) {
+				if ( imported.tryMode ) {
+					continue;
+				}
+				throw new Error(
+					`Unable to resolve browser module '${imported.logicalName}' required by '${resolved.logicalName}' in ${resolved.sourcePath}`
+				);
+			}
+			enqueue( imported.logicalName, resolved, true );
+		}
+	}
+
+	for ( const logicalName of excludedDefaults ) {
+		modules.delete( logicalName );
+	}
+
+	const discovered = [ ...modules.values() ];
+	checkExcludedDependencies( discovered, options );
+	return discovered;
+}
+
+function emitBrowserStdlib( outDir, modules, customRootCount ) {
+	fs.mkdirSync( outDir, { recursive: true } );
+
+	const lines = [
+		"'use strict';",
+		'',
+		'function createBrowserStdlib() {',
+		'\tconst jsModules = Object.create( null );',
+	];
+
+	for ( const mod of modules.filter( (item) => item.type === 'runtime-js' ) ) {
+		const requirePath = requirePathFromOutDir( outDir, mod.sourcePath );
+		lines.push(
+			`\tjsModules[${JSON.stringify( mod.generatedPath )}] = require( ${JSON.stringify( requirePath )} );`
+		);
+	}
+
+	lines.push(
+		'\tconst virtualFiles = Object.create( null );'
+	);
+
+	for ( const mod of modules.filter( (item) => item.type === 'pure-zuzu' ) ) {
+		const source = mod.source.replace( /[ \t]+$/gmu, '' );
+		lines.push(
+			`\tvirtualFiles[${JSON.stringify( mod.generatedPath )}] = ${JSON.stringify( source )};`
+		);
+	}
+
+	const includePaths = [];
+	for ( let i = 0; i < customRootCount; i++ ) {
+		includePaths.push( `/__zuzu_browser_modules__/${i}` );
+	}
+
+	lines.push(
+		'\treturn {',
+		"\t\trepoRoot: '/',",
+		`\t\tincludePaths: ${JSON.stringify( includePaths )},`,
+		'\t\tjsModules,',
+		'\t\tvirtualFiles,',
+		'\t};',
+		'}',
+		'',
+		'module.exports = {',
+		'\tcreateBrowserStdlib,',
+		'};',
+		''
+	);
+
+	fs.writeFileSync(
+		path.join( outDir, 'browser-stdlib.generated.js' ),
+		`${lines.join( '\n' )}\n`,
+		'utf8'
+	);
+
+	fs.writeFileSync(
+		path.join( outDir, 'browser-worker-source.generated.js' ),
+		[
+			"'use strict';",
+			'',
+			'module.exports = {',
+			"\tbrowserWorkerSource: '',",
+			'};',
+			'',
+		].join( '\n' ),
+		'utf8'
+	);
+
+	fs.writeFileSync(
+		path.join( outDir, 'browser-bundle-entry.generated.js' ),
+		[
+			"'use strict';",
+			'',
+			"const { createBrowserStdlib } = require( './browser-stdlib.generated' );",
+			"const { browserWorkerSource } = require( './browser-worker-source.generated' );",
+			'',
+			'const browserStdlib = createBrowserStdlib();',
+			'browserStdlib.workerSource = browserWorkerSource;',
+			'globalThis.__ZUZU_BROWSER_DEFAULT_RUNTIME_OPTIONS__ = browserStdlib;',
+			`module.exports = require( ${JSON.stringify( requirePathFromOutDir( outDir, path.join( repoRoot, 'extras', 'zuzu-js', 'lib', 'browser-bundle-entry.js' ) ) )} );`,
+			'',
+		].join( '\n' ),
+		'utf8'
+	);
+
+	fs.writeFileSync(
+		path.join( outDir, 'browser-worker-entry.generated.js' ),
+		[
+			"'use strict';",
+			'',
+			"const { createBrowserStdlib } = require( './browser-stdlib.generated' );",
+			'',
+			'globalThis.__ZUZU_BROWSER_DEFAULT_RUNTIME_OPTIONS__ = createBrowserStdlib();',
+			`const { installBrowserWorker } = require( ${JSON.stringify( requirePathFromOutDir( outDir, path.join( repoRoot, 'extras', 'zuzu-js', 'lib', 'browser-worker-entry.js' ) ) )} );`,
+			'installBrowserWorker( globalThis.__ZUZU_BROWSER_DEFAULT_RUNTIME_OPTIONS__ );',
+			'',
+		].join( '\n' ),
+		'utf8'
+	);
+
+	console.log( `Generated ${path.join( outDir, 'browser-stdlib.generated.js' )}` );
+}
+
+function main() {
+	const options = parseArgs( process.argv.slice( 2 ) );
+	try {
+		const modules = discoverModules( options );
+		console.error( 'Bundling ZuzuScript browser modules:' );
+		for ( const mod of modules ) {
+			console.error(
+				`${mod.logicalName}\t${mod.type}\t${mod.sourcePath}`
+			);
+		}
+		emitBrowserStdlib( options.outDir, modules, options.moduleRoots.length );
+	}
+	catch ( err ) {
+		console.error( `generate-browser-stdlib: ${err.message}` );
+		process.exit( 1 );
+	}
+}
+
+main();

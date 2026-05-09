@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Zuzu Browser Embedded Hello</title>
+</head>
+<body>
+	<h1>Zuzu embedded hello</h1>
+
+	<script src="../dist/zuzu-browser.js"></script>
+	<script type="text/x-zuzuscript">
+		say( "hello world from embedded zuz" );
+	</script>
+
+	<script>
+		(function () {
+			if ( !window.ZuzuBrowser || typeof window.ZuzuBrowser.createBrowserRuntime !== 'function' ) {
+				console.error( 'Zuzu browser bundle is not loaded.' );
+				return;
+			}
+
+			const browser = window.ZuzuBrowser.createBrowserRuntime();
+			console.log( browser.zuzu_eval( '5 mod 2' ) );
+		})();
+	</script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+from std/gui/objects import
+	Window,
+	VBox,
+	HBox,
+	Label,
+	Input,
+	Button,
+	Menu,
+	MenuItem;
+
+let status := new Label(
+	id: "status",
+	text: "Type a name, add rows, then try the guarded close.",
+);
+let name := new Input(
+	id: "name",
+	value: "Ada",
+	placeholder: "Name",
+);
+let close_guard := new Input(
+	id: "close-guard",
+	placeholder: "Type close to allow closing",
+);
+let rows := [];
+let row_count := 0;
+
+let root := new VBox(
+	id: "root",
+	padding: 16,
+	gap: 10,
+	children: [
+		new Label( text: "Phase 9 Electron GUI demo" ),
+		status,
+		new HBox(
+			id: "name-row",
+			gap: 8,
+			children: [
+				new Label( text: "Name:" ),
+				name,
+			],
+		),
+		new HBox(
+			id: "actions",
+			gap: 8,
+			children: [
+				new Button( id: "add-row", text: "Add row" ),
+				new Button( id: "remove-row", text: "Remove row" ),
+				new Button( id: "replace-content", text: "Replace content" ),
+			],
+		),
+		close_guard,
+		new Button( id: "close-window", text: "Close window" ),
+	],
+);
+
+let w := new Window(
+	title: "ZuzuScript Electron Phase 9",
+	width: 560,
+	height: 360,
+	children: [
+		new Menu(
+			id: "demo-menu",
+			text: "Demo",
+			children: [
+				new MenuItem( id: "menu-add", text: "Add row" ),
+			],
+		),
+		root,
+	],
+);
+
+function add_row () {
+	row_count++;
+	let row := new Label(
+		id: "dynamic-" _ row_count,
+		text: "Dynamic row " _ row_count _ " for " _ name.value(),
+	);
+	rows.push(row);
+	root.add_child(row);
+	status.text( "Created " _ row.id() );
+}
+
+function remove_row () {
+	if ( rows.length() ≡ 0 ) {
+		status.text( "No dynamic rows to remove." );
+		return null;
+	}
+	let row := rows.pop();
+	root.remove_child(row);
+	status.text( "Removed " _ row.id() );
+}
+
+root.on( "click", function ( e ) {
+	if ( e.target() ≢ root ) {
+		status.text(
+			"Click bubbled from " _ e.target().id() _ " during "
+				_ e.phase(),
+		);
+	}
+} );
+
+name.input( function () {
+	status.text( "Input event from DOM: " _ name.value() );
+} );
+
+w.find_by_id("add-row").click(add_row);
+w.find_by_id("menu-add").click(add_row);
+w.find_by_id("remove-row").click(remove_row);
+
+w.find_by_id("replace-content").click( function () {
+	let replacement := new VBox(
+		id: "replacement",
+		padding: 16,
+		gap: 10,
+		children: [
+			new Label( text: "The window content was replaced after show()." ),
+			new Button( id: "restore", text: "Restore original content" ),
+		],
+	);
+	w.set_content(replacement);
+	replacement.find_by_id("restore").click( function () {
+		w.set_content(root);
+		status.text( "Original content restored." );
+	} );
+} );
+
+w.find_by_id("close-window").click( function () {
+	w.close("button");
+} );
+
+w.close_request( function ( e ) {
+	if ( close_guard.value() ne "close" ) {
+		status.text( "Close blocked. Type close in the guard field first." );
+		e.prevent_default();
+	}
+} );
+
+w.closed( function () {
+	say( "Phase 9 demo closed with result: " _ w.call() );
+} );
+
+w.show();

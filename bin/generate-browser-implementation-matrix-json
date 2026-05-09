@@ -1,0 +1,426 @@
+#!/usr/bin/env node
+'use strict';
+
+const fs = require( 'node:fs' );
+const http = require( 'node:http' );
+const path = require( 'node:path' );
+const { spawn } = require( 'node:child_process' );
+
+const repoRoot = path.resolve( __dirname, '..', '..', '..' );
+const ztestsDir = path.join( repoRoot, 't', 'ztests' );
+const defaultOutputPath = path.join(
+	ztestsDir,
+	'browser-implementation-matrix.json',
+);
+const runnerDir = path.join( repoRoot, 'extras', 'zuzu-js', 'lib', 'browser-ztests' );
+const electronCommand = process.env.ZUZU_JS_BROWSER_ELECTRON_COMMAND
+	|| path.join( repoRoot, 'extras', 'zuzu-js', 'node_modules', '.bin', 'electron' );
+
+function usage() {
+	return [
+		'Usage: extras/zuzu-js/bin/generate-browser-implementation-matrix-json [options]',
+		'',
+		'Options:',
+		'  --timeout <seconds>      Per-test timeout passed to the browser harness.',
+		'  --output <path>          Output JSON file path.',
+		'  --only <regex>           Include only test paths matching regex.',
+		'  --electron-cmd <cmd>     Electron command used to host the browser page.',
+		'  --manual-browser         Print a URL and wait for your browser to run tests.',
+		'  --show                   Show the Electron browser window.',
+		'',
+	].join( '\n' );
+}
+
+function parseArgs( argv ) {
+	const options = {
+		timeoutSeconds: 60,
+		outputPath: defaultOutputPath,
+		onlyPattern: null,
+		electronCmd: electronCommand,
+		manualBrowser: false,
+		show: false,
+		electronChildUrl: null,
+	};
+	for ( let i = 0; i < argv.length; i++ ) {
+		const arg = argv[i];
+		if ( arg === '--electron-child' ) {
+			options.electronChildUrl = argv[++i];
+			continue;
+		}
+		if ( arg === '--timeout' ) {
+			options.timeoutSeconds = Number( argv[++i] );
+			continue;
+		}
+		if ( arg === '--output' ) {
+			options.outputPath = argv[++i];
+			continue;
+		}
+		if ( arg === '--only' ) {
+			options.onlyPattern = argv[++i];
+			continue;
+		}
+		if ( arg === '--electron-cmd' ) {
+			options.electronCmd = argv[++i];
+			continue;
+		}
+		if ( arg === '--manual-browser' ) {
+			options.manualBrowser = true;
+			continue;
+		}
+		if ( arg === '--show' ) {
+			options.show = true;
+			continue;
+		}
+		if ( arg === '--help' || arg === '-h' ) {
+			console.log( usage() );
+			process.exit( 0 );
+		}
+		throw new Error( `Unknown option: ${arg}` );
+	}
+	if ( !Number.isFinite( options.timeoutSeconds ) || options.timeoutSeconds < 1 ) {
+		throw new Error( '--timeout requires a positive number of seconds' );
+	}
+	if ( options.onlyPattern === '' ) {
+		throw new Error( '--only requires a non-empty regex' );
+	}
+	if ( !options.outputPath ) {
+		throw new Error( '--output requires a file path' );
+	}
+	return options;
+}
+
+function discoverZtests( dir ) {
+	const out = [];
+	for ( const entry of fs.readdirSync( dir, { withFileTypes: true } ) ) {
+		const full = path.join( dir, entry.name );
+		if ( entry.isDirectory() ) {
+			out.push( ...discoverZtests( full ) );
+			continue;
+		}
+		if (
+			entry.isFile()
+			&& full.endsWith( '.zzs' )
+		) {
+			out.push( full );
+		}
+	}
+	return out.sort();
+}
+
+function discoverVirtualFiles() {
+	const roots = [
+		path.join( repoRoot, 'modules' ),
+		path.join( repoRoot, 't', 'modules' ),
+		path.join( repoRoot, 't', 'ztests' ),
+	];
+	const files = Object.create( null );
+	for ( const root of roots ) {
+		if ( !fs.existsSync( root ) ) {
+			continue;
+		}
+		for ( const filename of walkZuzuFiles( root ) ) {
+			const rel = path.relative( repoRoot, filename ).replace( /\\/g, '/' );
+			files[`/${rel}`] = fs.readFileSync( filename, 'utf8' );
+		}
+	}
+	return files;
+}
+
+function walkZuzuFiles( dir ) {
+	const out = [];
+	for ( const entry of fs.readdirSync( dir, { withFileTypes: true } ) ) {
+		const full = path.join( dir, entry.name );
+		if ( entry.isDirectory() ) {
+			out.push( ...walkZuzuFiles( full ) );
+			continue;
+		}
+		if ( entry.isFile() && /\.(?:zzs|zzm)$/u.test( entry.name ) ) {
+			out.push( full );
+		}
+	}
+	return out.sort();
+}
+
+function selectedTests( onlyPattern ) {
+	let tests = discoverZtests( ztestsDir );
+	if ( onlyPattern != null ) {
+		const regex = new RegExp( onlyPattern );
+		tests = tests.filter( (testPath) => {
+			const rel = path.relative( repoRoot, testPath ).replace( /\\/g, '/' );
+			return regex.test( rel );
+		} );
+	}
+	if ( tests.length === 0 ) {
+		throw new Error( 'No ztest files selected.' );
+	}
+	return tests.map( (testPath) => {
+		const rel = path.relative( repoRoot, testPath ).replace( /\\/g, '/' );
+		return {
+			file: rel,
+			source: fs.readFileSync( testPath, 'utf8' ),
+		};
+	} );
+}
+
+function contentTypeFor( filename ) {
+	if ( filename.endsWith( '.html' ) ) {
+		return 'text/html; charset=utf-8';
+	}
+	if ( filename.endsWith( '.js' ) ) {
+		return 'application/javascript; charset=utf-8';
+	}
+	if ( filename.endsWith( '.json' ) ) {
+		return 'application/json; charset=utf-8';
+	}
+	return 'text/plain; charset=utf-8';
+}
+
+function sendJson( res, value ) {
+	const body = `${JSON.stringify( value )}\n`;
+	res.writeHead( 200, {
+		'content-type': 'application/json; charset=utf-8',
+		'content-length': Buffer.byteLength( body ),
+	} );
+	res.end( body );
+}
+
+function sendFile( res, filename ) {
+	fs.readFile( filename, (err, data) => {
+		if ( err ) {
+			res.writeHead( 404, { 'content-type': 'text/plain; charset=utf-8' } );
+			res.end( 'not found\n' );
+			return;
+		}
+		res.writeHead( 200, {
+			'content-type': contentTypeFor( filename ),
+			'content-length': data.length,
+		} );
+		res.end( data );
+	} );
+}
+
+function readRequestBody( req ) {
+	return new Promise( (resolve, reject) => {
+		let body = '';
+		req.setEncoding( 'utf8' );
+		req.on( 'data', (chunk) => {
+			body += chunk;
+		} );
+		req.on( 'end', () => resolve( body ) );
+		req.on( 'error', reject );
+	} );
+}
+
+function createServer( manifest, onResults ) {
+	return http.createServer( async (req, res) => {
+		const url = new URL( req.url, 'http://127.0.0.1/' );
+		if ( req.method === 'GET' && url.pathname === '/' ) {
+			res.writeHead( 302, { location: '/__zuzu_browser_ztests/runner.html' } );
+			res.end();
+			return;
+		}
+		if ( req.method === 'GET' && url.pathname === '/__zuzu_browser_ztests/manifest.json' ) {
+			sendJson( res, manifest );
+			return;
+		}
+		if ( req.method === 'GET' && url.pathname === '/__zuzu_browser_ztests/runner.html' ) {
+			sendFile( res, path.join( runnerDir, 'runner.html' ) );
+			return;
+		}
+		if ( req.method === 'GET' && url.pathname === '/__zuzu_browser_ztests/runner.js' ) {
+			sendFile( res, path.join( runnerDir, 'runner.js' ) );
+			return;
+		}
+		if ( req.method === 'GET' && url.pathname === '/__zuzu_browser_ztests/http-fixture' ) {
+			res.writeHead( 200, {
+				'content-type': 'text/plain; charset=utf-8',
+			} );
+			res.end( 'ZuzuScript browser HTTP fixture\n' );
+			return;
+		}
+		if ( req.method === 'GET' && url.pathname === '/extras/zuzu-js/dist/zuzu-browser.js' ) {
+			sendFile( res, path.join( repoRoot, 'extras', 'zuzu-js', 'dist', 'zuzu-browser.js' ) );
+			return;
+		}
+		if ( req.method === 'GET' && url.pathname === '/extras/zuzu-js/dist/zuzu-browser-worker.js' ) {
+			sendFile( res, path.join( repoRoot, 'extras', 'zuzu-js', 'dist', 'zuzu-browser-worker.js' ) );
+			return;
+		}
+		if ( req.method === 'POST' && url.pathname === '/__zuzu_browser_ztests/results' ) {
+			try {
+				const body = await readRequestBody( req );
+				onResults( JSON.parse( body ) );
+				sendJson( res, { ok: true } );
+			}
+			catch ( err ) {
+				res.writeHead( 400, { 'content-type': 'text/plain; charset=utf-8' } );
+				res.end( `${err.message}\n` );
+			}
+			return;
+		}
+		res.writeHead( 404, { 'content-type': 'text/plain; charset=utf-8' } );
+		res.end( 'not found\n' );
+	} );
+}
+
+function listen( server ) {
+	return new Promise( (resolve, reject) => {
+		server.on( 'error', reject );
+		server.listen( 0, '127.0.0.1', () => resolve( server.address() ) );
+	} );
+}
+
+function closeServer( server ) {
+	return new Promise( (resolve) => server.close( resolve ) );
+}
+
+function spawnElectron( options, url ) {
+	const args = [ __filename, '--electron-child', url ];
+	if ( options.show ) {
+		args.push( '--show' );
+	}
+	return spawn( options.electronCmd, args, {
+		cwd: repoRoot,
+		stdio: [ 'ignore', 'inherit', 'inherit' ],
+	} );
+}
+
+function waitUntilInterrupted() {
+	return new Promise( (resolve) => {
+		const done = () => {
+			process.off( 'SIGINT', done );
+			process.off( 'SIGTERM', done );
+			resolve();
+		};
+		process.on( 'SIGINT', done );
+		process.on( 'SIGTERM', done );
+	} );
+}
+
+function runElectronChild( options ) {
+	const electron = require( 'electron' );
+	const { app, BrowserWindow } = electron;
+	if ( !options.show ) {
+		app.commandLine.appendSwitch( 'headless' );
+	}
+	app.commandLine.appendSwitch( 'disable-gpu' );
+	app.commandLine.appendSwitch( 'disable-dev-shm-usage' );
+	app.whenReady().then( async () => {
+		const win = new BrowserWindow( {
+			show: options.show,
+			webPreferences: {
+				contextIsolation: false,
+				nodeIntegration: false,
+				sandbox: false,
+			},
+		} );
+		win.on( 'closed', () => app.quit() );
+		try {
+			await win.loadURL( options.electronChildUrl );
+		}
+		catch ( err ) {
+			console.error( err.stack || err.message );
+			app.exit( 1 );
+		}
+	} );
+}
+
+async function runParent( options ) {
+	const bundlePath = path.join( repoRoot, 'extras', 'zuzu-js', 'dist', 'zuzu-browser.js' );
+	if ( !fs.existsSync( bundlePath ) ) {
+		throw new Error(
+			`Missing browser bundle: ${bundlePath}\n` +
+			'Run extras/zuzu-js/bin/build-browser-bundle first.'
+		);
+	}
+	const manifest = {
+		timeoutSeconds: options.timeoutSeconds,
+		tests: selectedTests( options.onlyPattern ),
+		virtualFiles: discoverVirtualFiles(),
+	};
+	let finished = false;
+	let electron = null;
+	let server = null;
+	let timeout = null;
+	const resultsPromise = new Promise( (resolve, reject) => {
+		if ( !options.manualBrowser ) {
+			const maxMillis = Math.max(
+				30000,
+				( manifest.tests.length * options.timeoutSeconds * 1000 ) + 30000,
+			);
+			timeout = setTimeout(
+				() => reject(
+					new Error(
+						`Browser matrix run timed out after ${Math.ceil( maxMillis / 1000 )}s`
+					)
+				),
+				maxMillis,
+			);
+		}
+		server = createServer( manifest, (payload) => {
+			if ( finished ) {
+				return;
+			}
+			finished = true;
+			clearTimeout( timeout );
+			resolve( { payload, server } );
+		} );
+		listen( server ).then( (address) => {
+			const url = `http://${address.address}:${address.port}/__zuzu_browser_ztests/runner.html`;
+			if ( options.manualBrowser ) {
+				console.log( `Open ${url} in your browser to run the ztests.` );
+				console.log( 'Waiting for browser results...' );
+				return;
+			}
+			electron = spawnElectron( options, url );
+			electron.on( 'error', reject );
+			electron.on( 'exit', (code, signal) => {
+				if ( !finished ) {
+					reject( new Error( `Electron exited before results: code=${code} signal=${signal || ''}` ) );
+				}
+			} );
+		}, reject );
+	} );
+	try {
+		const { payload } = await resultsPromise;
+		await closeServer( server );
+		server = null;
+		if ( electron && !electron.killed ) {
+			electron.kill();
+		}
+		const outputPath = path.isAbsolute( options.outputPath )
+			? options.outputPath
+			: path.join( repoRoot, options.outputPath );
+		fs.mkdirSync( path.dirname( outputPath ), { recursive: true } );
+		fs.writeFileSync( outputPath, `${JSON.stringify( payload, null, 2 )}\n`, 'utf8' );
+		console.log( `Wrote ${outputPath}` );
+		if ( options.manualBrowser ) {
+			console.log( 'Server is still running. Press Ctrl-C to stop it.' );
+			await waitUntilInterrupted();
+		}
+	}
+	finally {
+		clearTimeout( timeout );
+		if ( server && server.listening ) {
+			await closeServer( server );
+		}
+		if ( electron && !electron.killed && !finished ) {
+			electron.kill();
+		}
+	}
+}
+
+( async () => {
+	try {
+		const options = parseArgs( process.argv.slice( 2 ) );
+		if ( options.electronChildUrl ) {
+			runElectronChild( options );
+			return;
+		}
+		await runParent( options );
+	}
+	catch ( err ) {
+		console.error( err.message );
+		process.exit( 1 );
+	}
+} )();

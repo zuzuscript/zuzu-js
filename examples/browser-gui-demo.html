@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>ZuzuScript Browser GUI Demo</title>
+	<style>
+		:root {
+			color-scheme: light;
+			font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+			color: #18202a;
+			background: #eef1f5;
+		}
+
+		body {
+			margin: 0;
+			min-height: 100vh;
+		}
+
+		main {
+			box-sizing: border-box;
+			max-width: 980px;
+			padding: 32px;
+		}
+
+		h1 {
+			margin: 0 0 10px;
+			font-size: 28px;
+			font-weight: 700;
+			letter-spacing: 0;
+		}
+
+		p {
+			max-width: 720px;
+			margin: 0 0 18px;
+			color: #526071;
+			line-height: 1.5;
+		}
+	</style>
+</head>
+<body>
+	<main>
+		<h1>ZuzuScript Browser GUI Demo</h1>
+		<p>
+			This page loads the browser bundle and runs embedded ZuzuScript.
+			The demo opens DOM-backed GUI windows using the same std/gui
+			object model as the other JavaScript GUI hosts.
+		</p>
+	</main>
+
+	<script src="../dist/zuzu-browser.js"></script>
+	<script type="text/x-zuzuscript">
+		from std/gui/objects import
+			Window,
+			VBox,
+			HBox,
+			Label,
+			Text,
+			Input,
+			Button,
+			Menu,
+			MenuItem;
+
+		let status := new Text(
+			id: "status",
+			value: "Type a name, press buttons, or use the menu.",
+		);
+		let name := new Input(
+			id: "name",
+			value: "Ada",
+			placeholder: "Name",
+		);
+		let count := 0;
+		let second_count := 0;
+
+		let root := new VBox(
+			id: "root",
+			padding: 14,
+			gap: 10,
+			children: [
+				new Label( text: "Phase 15 browser GUI bridge" ),
+				status,
+				new HBox(
+					gap: 8,
+					children: [
+						new Label( text: "Name:" ),
+						name,
+					],
+				),
+				new HBox(
+					gap: 8,
+					children: [
+						new Button( id: "hello", text: "Say hello" ),
+						new Button( id: "add-row", text: "Add row" ),
+						new Button( id: "open-second", text: "Open second window" ),
+						new Button( id: "close-main", text: "Close" ),
+					],
+				),
+			],
+		);
+
+		let main := new Window(
+			title: "ZuzuScript Browser GUI",
+			width: 560,
+			height: 330,
+			children: [
+				new Menu(
+					id: "demo-menu",
+					text: "Demo",
+					children: [
+						new MenuItem( id: "menu-hello", text: "Say hello" ),
+						new MenuItem( id: "menu-second", text: "Open second window" ),
+					],
+				),
+				root,
+			],
+		);
+
+		function say_hello () {
+			count++;
+			status.value(
+				"Hello " _ ( name.value() ?: "there" ) _ ". Click count: " _ count,
+			);
+			say( status.value() );
+		}
+
+		function add_row () {
+			count++;
+			let row := new Label(
+				id: "dynamic-row-" _ count,
+				text: "Dynamic row " _ count _ " for " _ ( name.value() ?: "there" ),
+			);
+			root.add_child(row);
+			status.value( "Added " _ row.id() );
+		}
+
+		function open_second () {
+			second_count++;
+			let message := new Text(
+				value: "This is browser window " _ second_count
+					_ ". Click its button to close only this window.",
+			);
+			let child := new Window(
+				title: "Second Zuzu Window " _ second_count,
+				width: 360,
+				height: 190,
+				children: [
+					new VBox(
+						padding: 14,
+						gap: 10,
+						children: [
+							message,
+							new Button( id: "close-child", text: "Close this window" ),
+						],
+					),
+				],
+			);
+			child.find_by_id("close-child").click( function () {
+				child.close("button");
+			} );
+			child.closed( function () {
+				say( "Closed " _ child.title() );
+			} );
+			child.show();
+		}
+
+		name.input( function () {
+			status.value( "Input event: " _ name.value() );
+		} );
+		main.find_by_id("hello").click(say_hello);
+		main.find_by_id("menu-hello").click(say_hello);
+		main.find_by_id("add-row").click(add_row);
+		main.find_by_id("open-second").click(open_second);
+		main.find_by_id("menu-second").click(open_second);
+		main.find_by_id("close-main").click( function () {
+			main.close("button");
+		} );
+		main.closed( function () {
+			say( "Main window closed." );
+		} );
+
+		main.show();
+		say( "Browser GUI demo loaded." );
+	</script>
+</body>
+</html>

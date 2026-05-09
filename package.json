@@ -1,0 +1,42 @@
+{
+  "name": "zuzu",
+  "version": "1.0.0",
+  "description": "",
+  "main": "run-ztests.js",
+  "bin": {
+    "zuzu-js": "bin/zuzu-js",
+    "zuzu-js-compile": "bin/zuzu-js-compile",
+    "zuzu-js-electron": "bin/zuzu-js-electron",
+    "zuzu-js-browser-ztests": "bin/generate-browser-implementation-matrix-json"
+  },
+  "directories": {
+    "example": "examples",
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "electron:demo": "electron bin/zuzu-js-electron ../../examples/09_gui_dialogue_demo.zzs",
+    "test": "node test/cli.js && node test/std-marshal-cbor.js && node test/std-marshal-data-graph.js && node test/std-marshal-user-object.js && node test/std-marshal-code-table.js && node test/async-parity.js && node test/browser-stdlib-generator.js && node test/browser-gui.js && node test/electron-gui.js && node test/electron-renderer.js && node test/electron-packaging.js",
+    "test:electron": "node test/electron-gui.js && node test/electron-renderer.js && node test/electron-packaging.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@xmldom/xmldom": "^0.9.10",
+    "adm-zip": "^0.5.17",
+    "better-sqlite3": "^11.10.0",
+    "cbor-x": "^1.6.4",
+    "cborg": "^5.1.1",
+    "compressjs": "^1.0.3",
+    "js-yaml": "^4.1.1",
+    "koffi": "^2.16.1",
+    "mysql2": "^3.22.3",
+    "node-forge": "^1.4.0",
+    "pg": "^8.20.0",
+    "xpath": "^0.0.34"
+  },
+  "devDependencies": {
+    "electron": "^41.3.0"
+  }
+}

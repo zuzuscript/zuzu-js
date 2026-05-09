@@ -1,0 +1,152 @@
+#!/usr/bin/env node
+'use strict';
+
+const fs = require( 'node:fs' );
+const path = require( 'node:path' );
+const { compileToBundle } = require( '../lib/compiler' );
+
+function printUsage( message = '' ) {
+	if ( message ) {
+		process.stderr.write( `${message}\n` );
+	}
+	process.stderr.write( 'Usage: zuzu-js-compile [options] path/to/script.zzs\n' );
+	process.stderr.write( 'Options:\n' );
+	process.stderr.write( '  -I/path/to/lib           add module include directory\n' );
+	process.stderr.write( '  -o, --output <file>      write output to file instead of stdout\n' );
+	process.stderr.write( '  --sourcemap=none         reserve source map option; only none is supported\n' );
+	process.stderr.write( '  --transpiler=new-only    select transpiler implementation\n' );
+	process.stderr.write( '  -h, --help               show this help\n' );
+}
+
+function parseArgValue( argv, index, flag ) {
+	if ( index + 1 >= argv.length ) {
+		return { error: `Missing value for ${flag}` };
+	}
+	return { value: argv[index + 1], nextIndex: index + 1 };
+}
+
+function parseArgs( argv ) {
+	const options = {
+		includePaths: [],
+		output: null,
+		sourcemap: 'none',
+		transpiler: null,
+		help: false,
+		entry: null,
+	};
+	for ( let i = 0; i < argv.length; i++ ) {
+		const arg = argv[i];
+		if ( arg === '-h' || arg === '--help' ) {
+			options.help = true;
+			continue;
+		}
+		if ( arg === '-o' || arg === '--output' ) {
+			const parsed = parseArgValue( argv, i, arg );
+			if ( parsed.error ) {
+				return { error: parsed.error };
+			}
+			options.output = parsed.value;
+			i = parsed.nextIndex;
+			continue;
+		}
+		if ( arg.startsWith( '--output=' ) ) {
+			options.output = arg.slice( '--output='.length );
+			continue;
+		}
+		if ( arg === '-I' ) {
+			const parsed = parseArgValue( argv, i, '-I' );
+			if ( parsed.error ) {
+				return { error: parsed.error };
+			}
+			options.includePaths.push( parsed.value );
+			i = parsed.nextIndex;
+			continue;
+		}
+		if ( arg.startsWith( '-I' ) && arg.length > 2 ) {
+			options.includePaths.push( arg.slice( 2 ) );
+			continue;
+		}
+		if ( arg === '--transpiler' ) {
+			const parsed = parseArgValue( argv, i, '--transpiler' );
+			if ( parsed.error ) {
+				return { error: parsed.error };
+			}
+			options.transpiler = parsed.value;
+			i = parsed.nextIndex;
+			continue;
+		}
+		if ( arg.startsWith( '--transpiler=' ) ) {
+			options.transpiler = arg.slice( '--transpiler='.length );
+			continue;
+		}
+		if ( arg === '--sourcemap' ) {
+			const parsed = parseArgValue( argv, i, '--sourcemap' );
+			if ( parsed.error ) {
+				return { error: parsed.error };
+			}
+			options.sourcemap = parsed.value;
+			i = parsed.nextIndex;
+			continue;
+		}
+		if ( arg.startsWith( '--sourcemap=' ) ) {
+			options.sourcemap = arg.slice( '--sourcemap='.length );
+			continue;
+		}
+		if ( arg.startsWith( '-' ) ) {
+			return { error: `Unknown option: ${arg}` };
+		}
+		if ( options.entry != null ) {
+			return { error: `Unexpected argument: ${arg}` };
+		}
+		options.entry = arg;
+	}
+	if ( options.sourcemap !== 'none' ) {
+		return { error: `Unsupported source map mode: ${options.sourcemap}` };
+	}
+	if ( !options.help && options.entry == null ) {
+		return { error: 'Missing input script' };
+	}
+	return { options };
+}
+
+function main( argv = process.argv.slice( 2 ) ) {
+	const parsed = parseArgs( argv );
+	if ( parsed.error ) {
+		printUsage( parsed.error );
+		return 2;
+	}
+	const options = parsed.options;
+	if ( options.help ) {
+		printUsage();
+		return 0;
+	}
+	try {
+		const output = compileToBundle( path.resolve( options.entry ), {
+			includePaths: options.includePaths,
+			transpiler: options.transpiler,
+		} );
+		if ( options.output ) {
+			fs.mkdirSync( path.dirname( path.resolve( options.output ) ), {
+				recursive: true,
+			} );
+			fs.writeFileSync( options.output, output, 'utf8' );
+		}
+		else {
+			process.stdout.write( output );
+		}
+		return 0;
+	}
+	catch ( err ) {
+		process.stderr.write( `${err && err.message ? err.message : String( err )}\n` );
+		return 1;
+	}
+}
+
+if ( require.main === module ) {
+	process.exitCode = main();
+}
+
+module.exports = {
+	main,
+	parseArgs,
+};

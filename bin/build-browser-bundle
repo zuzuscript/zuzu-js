@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+ROOT_DIR="$( cd -- "${SCRIPT_DIR}/.." >/dev/null 2>&1 && pwd )"
+
+for arg in "$@"; do
+	if [[ "${arg}" == "--help" ]]; then
+		printf '%s\n' \
+			"Usage: build-browser-bundle [OPTIONS]" \
+			"" \
+			"Build extras/zuzu-js/dist/zuzu-browser.js and zuzu-browser-worker.js." \
+			"" \
+			"Options:" \
+			"  -M DIR                 Add a pure ZuzuScript module directory." \
+			"  -MDIR                  Add a pure ZuzuScript module directory." \
+			"  --include MODULE       Include an additional module." \
+			"  --include=MODULE       Include an additional module." \
+			"  --exclude MODULE       Exclude a bundled module." \
+			"  --exclude=MODULE       Exclude a bundled module." \
+			"  --help                 Show this help text."
+		exit 0
+	fi
+done
+
+mkdir -p "${ROOT_DIR}/dist"
+GEN_DIR="$( mktemp -d "${TMPDIR:-/tmp}/zuzu-browser-build.XXXXXX" )"
+trap 'rm -rf "${GEN_DIR}"' EXIT
+node "${ROOT_DIR}/bin/generate-browser-stdlib" "${GEN_DIR}" "$@"
+
+npx --yes esbuild \
+	"${GEN_DIR}/browser-worker-entry.generated.js" \
+	--bundle \
+	--format=iife \
+	--platform=browser \
+	--external:node:* \
+	--external:./host/node-host \
+	--external:./host/node-host.js \
+	--outfile="${ROOT_DIR}/dist/zuzu-browser-worker.js"
+
+node -e 'const fs = require("node:fs"); const source = fs.readFileSync(process.argv[1], "utf8"); fs.writeFileSync(process.argv[2], `"use strict";\n\nmodule.exports = {\n\tbrowserWorkerSource: ${JSON.stringify(source)},\n};\n`, "utf8");' \
+	"${ROOT_DIR}/dist/zuzu-browser-worker.js" \
+	"${GEN_DIR}/browser-worker-source.generated.js"
+
+npx --yes esbuild \
+	"${GEN_DIR}/browser-bundle-entry.generated.js" \
+	--bundle \
+	--format=iife \
+	--global-name=ZuzuBrowser \
+	--platform=browser \
+	--external:node:* \
+	--external:./host/node-host \
+	--external:./host/node-host.js \
+	--outfile="${ROOT_DIR}/dist/zuzu-browser.js"
+
+echo "Built ${ROOT_DIR}/dist/zuzu-browser.js"
+echo "Built ${ROOT_DIR}/dist/zuzu-browser-worker.js"

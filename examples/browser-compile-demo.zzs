@@ -1,0 +1,17 @@
+from std/data/json import JSON;
+from std/path/z import ZPath;
+
+let data := {
+	title: "ZuzuScript browser compile demo",
+	users: [
+		{ name: "Ada", score: 42 },
+		{ name: "Lin", score: 37 },
+	],
+};
+
+let first_name := new ZPath( path: "/users/#0/name" ).first(data);
+let encoded := new JSON( canonical: true ).encode(data);
+
+say( data{title} );
+say( "first user: " _ first_name );
+say( "json bytes: " _ length encoded );

@@ -1,0 +1,23 @@
+#!/usr/bin/env node
+'use strict';
+
+const path = require( 'node:path' );
+const { createNodeRuntime } = require( '../lib/runtime-entrypoints' );
+const { runCliAsync } = require( '../lib/cli' );
+
+runCliAsync( process.argv.slice( 2 ), ( options ) => createNodeRuntime( {
+	repoRoot: path.resolve( __dirname, '..', '..', '..' ),
+	includePaths: options.includePaths,
+	denyCapabilities: options.denyCapabilities,
+	denyModules: options.denyModules,
+	debugLevel: options.debugLevel,
+	transpiler: options.transpiler,
+} ) ).then(
+	(exitCode) => {
+		process.exitCode = exitCode;
+	},
+	(err) => {
+		process.stderr.write( `${err && err.stack ? err.stack : String( err )}\n` );
+		process.exitCode = 1;
+	},
+);

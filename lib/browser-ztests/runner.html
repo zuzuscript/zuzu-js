@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>ZuzuScript Browser Ztests</title>
+	<style>
+		body {
+			font-family: system-ui, sans-serif;
+			margin: 24px;
+			color: #1f2933;
+			background: #f8fafc;
+		}
+
+		h1 {
+			margin: 0 0 12px;
+			font-size: 24px;
+		}
+
+		#status,
+		#summary {
+			margin: 0 0 12px;
+		}
+
+		table {
+			width: 100%;
+			border-collapse: collapse;
+			background: white;
+		}
+
+		th,
+		td {
+			padding: 8px;
+			border-bottom: 1px solid #d9e2ec;
+			text-align: left;
+			vertical-align: top;
+		}
+
+		th {
+			background: #e6f0f7;
+		}
+
+		.badge {
+			display: inline-block;
+			padding: 2px 8px;
+			border-radius: 4px;
+			color: white;
+			font-size: 12px;
+			font-weight: 700;
+		}
+
+		.pass {
+			background: #147d64;
+		}
+
+		.soft_fail {
+			background: #b7791f;
+		}
+
+		.hard_fail {
+			background: #ba2525;
+		}
+
+		pre {
+			white-space: pre-wrap;
+		}
+	</style>
+</head>
+<body>
+	<h1>ZuzuScript Browser Ztests</h1>
+	<p id="status">loading</p>
+	<p id="summary"></p>
+	<table>
+		<thead>
+			<tr>
+				<th>Test</th>
+				<th>Status</th>
+				<th>Reason</th>
+				<th>Elapsed</th>
+				<th>Output</th>
+			</tr>
+		</thead>
+		<tbody id="results"></tbody>
+	</table>
+	<h2>Matrix JSON</h2>
+	<pre id="json"></pre>
+	<script src="/extras/zuzu-js/dist/zuzu-browser.js"></script>
+	<script src="/__zuzu_browser_ztests/runner.js"></script>
+</body>
+</html>

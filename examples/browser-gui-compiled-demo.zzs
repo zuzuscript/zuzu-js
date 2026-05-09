@@ -1,0 +1,46 @@
+from std/gui/objects import Window, VBox, HBox, Label, Input, Button;
+
+let status := new Label(
+	text: "Compiled ZuzuScript opened this browser GUI window.",
+);
+let name := new Input(
+	value: "Grace",
+	placeholder: "Name",
+);
+let button := new Button(
+	text: "Update message",
+);
+
+let w := new Window(
+	title: "Compiled Browser GUI",
+	width: 420,
+	height: 190,
+	children: [
+		new VBox(
+			padding: 14,
+			gap: 10,
+			children: [
+				status,
+				new HBox(
+					gap: 8,
+					children: [
+						new Label( text: "Name:" ),
+						name,
+					],
+				),
+				button,
+			],
+		),
+	],
+);
+
+button.click( function () {
+	status.text( "Hello " _ ( name.value() ?: "there" ) _ " from compiled ZuzuScript." );
+	say( status.text() );
+} );
+
+w.closed( function () {
+	say( "Compiled browser GUI window closed." );
+} );
+
+w.show();
