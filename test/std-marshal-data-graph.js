@@ -3,6 +3,7 @@
 const assert = require( 'node:assert/strict' );
 const fs = require( 'node:fs' );
 const path = require( 'node:path' );
+const projectPaths = require( '../lib/paths' );
 
 const marshal = require( '../modules/std/marshal' );
 const {
@@ -14,8 +15,8 @@ const {
 const { Time } = require( '../modules/std/time' );
 const { Path } = require( '../modules/std/io' );
 
-const repoRoot = path.resolve( __dirname, '..', '..', '..' );
-const fixtureDir = path.join( repoRoot, 't', 'fixtures', 'marshal' );
+const repoRoot = projectPaths.projectRoot;
+const fixtureDir = path.join( projectPaths.stdlibFixtureRoot, 'marshal' );
 const goldenDir = path.join( fixtureDir, 'golden' );
 
 function base64( blob ) {

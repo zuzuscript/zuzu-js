@@ -3,18 +3,22 @@
 const assert = require( 'node:assert/strict' );
 const fs = require( 'node:fs' );
 const path = require( 'node:path' );
+const projectPaths = require( '../lib/paths' );
 const { spawnSync } = require( 'node:child_process' );
 
 const { createNodeRuntime } = require( '../lib/zuzu' );
 
-const repoRoot = path.resolve( __dirname, '..', '..', '..' );
-const fixtureDir = path.join( repoRoot, 't', 'fixtures', 'marshal', 'golden' );
-const commands = [ 'bin/zuzu', 'extras/zuzu-rust/target/release/zuzu-rust' ];
+const repoRoot = projectPaths.projectRoot;
+const fixtureDir = path.join( projectPaths.stdlibFixtureRoot, 'marshal', 'golden' );
+const commands = [
+	process.env.ZUZU_PERL_BIN,
+	process.env.ZUZU_RUST_BIN,
+].filter( Boolean );
 
 function runZuzuJs( source ) {
 	const runtime = createNodeRuntime( {
 		repoRoot,
-		includePaths: [ 't/modules' ],
+		includePaths: [ 'stdlib/test-modules' ],
 	} );
 	const result = runtime.runSource( source, { filename: '<marshal-code-table-test>' } );
 	assert.equal( result.status, 0, result.stderr );
@@ -24,7 +28,7 @@ function runZuzuJs( source ) {
 function runCommand( command, source ) {
 	const result = spawnSync(
 		command,
-		[ '-It/modules', '-e', source ],
+		[ '-Istdlib/test-modules', '-e', source ],
 		{ cwd: repoRoot, encoding: 'utf8' }
 	);
 	assert.equal( result.status, 0, result.stderr || result.stdout );

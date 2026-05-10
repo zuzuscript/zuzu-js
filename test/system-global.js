@@ -2,9 +2,10 @@
 
 const assert = require( 'node:assert/strict' );
 const path = require( 'node:path' );
+const projectPaths = require( '../lib/paths' );
 const { createNodeRuntime } = require( '../lib/zuzu' );
 
-const repoRoot = path.resolve( __dirname, '..', '..', '..' );
+const repoRoot = projectPaths.projectRoot;
 const runtime = createNodeRuntime( {
 	repoRoot,
 	includePaths: [ path.join( repoRoot, 'modules' ) ],
@@ -25,7 +26,7 @@ const dumped = JSON.parse( result.stdout );
 assert.equal( dumped.runtime, 'zuzu-js' );
 assert.equal( dumped.language_version, 0 );
 assert.equal( typeof dumped.inc, 'string' );
-assert.ok( dumped.inc.includes( '/extras/zuzu-js/modules' ) );
+assert.ok( dumped.inc.includes( projectPaths.jsModuleRoot ) );
 assert.equal( typeof dumped.nodejs_version, 'string' );
 assert.match( dumped.nodejs_version, /^\d+\.\d+\.\d+$/u );
 assert.ok( Object.prototype.hasOwnProperty.call( dumped, 'deny_fs' ) );

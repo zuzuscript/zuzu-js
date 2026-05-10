@@ -3,6 +3,7 @@
 const assert = require( 'node:assert/strict' );
 const fs = require( 'node:fs' );
 const path = require( 'node:path' );
+const projectPaths = require( '../lib/paths' );
 
 const {
 	ZuzuScript,
@@ -10,8 +11,8 @@ const {
 	createBrowserHost,
 } = require( '../lib/zuzu' );
 
-const repoRoot = path.resolve( __dirname, '..', '..', '..' );
-const jsModuleRoot = path.join( repoRoot, 'extras', 'zuzu-js', 'modules' );
+const repoRoot = projectPaths.projectRoot;
+const jsModuleRoot = projectPaths.jsModuleRoot;
 
 function loadJsModules( rels ) {
 	const modules = {};
@@ -414,7 +415,7 @@ async function main() {
 		const runtime = createBrowserRuntime();
 		const filename = path.join(
 			repoRoot,
-			`t/ztests/std/gui/_phase${phase}.zzs`,
+			`stdlib/tests/std/gui/_phase${phase}.zzs`,
 		);
 		const result = runtime.runSource(
 			fs.readFileSync( filename, 'utf8' ),

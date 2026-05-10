@@ -4,9 +4,10 @@ const assert = require( 'node:assert/strict' );
 const fs = require( 'node:fs' );
 const os = require( 'node:os' );
 const path = require( 'node:path' );
+const projectPaths = require( '../lib/paths' );
 const { ZuzuScript, createNodeHost, createBrowserHost } = require( '../lib/zuzu' );
 
-const repoRoot = path.resolve( __dirname, '..', '..', '..' );
+const repoRoot = projectPaths.projectRoot;
 
 function runOnHost( host, source, filename = '/app/main.zzs' ) {
 	const runtime = new ZuzuScript( { host } );

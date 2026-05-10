@@ -6,6 +6,7 @@ const os = require( 'node:os' );
 const path = require( 'node:path' );
 const vm = require( 'node:vm' );
 const { ZuzuScript, transpile } = require( '../lib/zuzu' );
+const projectPaths = require( '../lib/paths' );
 
 function run( src, options = {} ) {
 	const runtime = new ZuzuScript();
@@ -868,7 +869,7 @@ function run( src, options = {} ) {
 }
 
 {
-	const runtime = new ZuzuScript( { repoRoot: path.resolve( __dirname, '..', '..', '..' ) } );
+	const runtime = new ZuzuScript( { repoRoot: projectPaths.projectRoot } );
 	const loaded = runtime.loadModule( 'modules/test/more' );
 	assert.equal( typeof loaded.ok, 'function' );
 	assert.equal( typeof loaded.subtest, 'function' );
@@ -1014,7 +1015,7 @@ function run( src, options = {} ) {
 }
 
 {
-	const runtime = new ZuzuScript( { repoRoot: path.resolve( __dirname, '..', '..', '..' ) } );
+	const runtime = new ZuzuScript( { repoRoot: projectPaths.projectRoot } );
 	const math = runtime.loadModule( 'std/math' );
 	const strings = runtime.loadModule( 'std/string' );
 	assert.equal( Math.round( math.Math.sin( math.Math.pi / 2 ) * 1000 ), 1000 );

@@ -3,6 +3,7 @@
 const assert = require( 'node:assert/strict' );
 const fs = require( 'node:fs' );
 const path = require( 'node:path' );
+const projectPaths = require( '../lib/paths' );
 
 const { BinaryString } = require( '../lib/runtime-helpers' );
 const {
@@ -22,8 +23,8 @@ const {
 	validateProfile,
 } = require( '../modules/std/marshal/cbor' );
 
-const repoRoot = path.resolve( __dirname, '..', '..', '..' );
-const fixtureDir = path.join( repoRoot, 't', 'fixtures', 'marshal', 'golden' );
+const repoRoot = projectPaths.projectRoot;
+const fixtureDir = path.join( projectPaths.stdlibFixtureRoot, 'marshal', 'golden' );
 
 function hex( value ) {
 	const bytes = value instanceof BinaryString ? value.bytes : value;

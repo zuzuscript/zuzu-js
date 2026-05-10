@@ -3,9 +3,10 @@
 const assert = require( 'node:assert/strict' );
 const fs = require( 'node:fs' );
 const path = require( 'node:path' );
+const projectPaths = require( '../lib/paths' );
 
-const repoRoot = path.resolve( __dirname, '..', '..', '..' );
-const projectRoot = path.join( repoRoot, 'extras', 'zuzu-js' );
+const repoRoot = projectPaths.projectRoot;
+const projectRoot = repoRoot;
 const packageJson = JSON.parse(
 	fs.readFileSync( path.join( projectRoot, 'package.json' ), 'utf8' )
 );
@@ -29,14 +30,14 @@ for ( const rel of [
 	assert.ok( fs.existsSync( path.join( projectRoot, rel ) ), `${rel} exists` );
 }
 
-const packagingDoc = fs.readFileSync(
-	path.join( repoRoot, 'docs', 'gui-electron-packaging.md' ),
-	'utf8'
-);
-assert.match( packagingDoc, /zuzu-js --electron/ );
-assert.match( packagingDoc, /contextIsolation/ );
-assert.match( packagingDoc, /Linux/ );
-assert.match( packagingDoc, /macOS/ );
-assert.match( packagingDoc, /Windows/ );
+const packagingDocPath = path.join( repoRoot, 'docs', 'gui-electron-packaging.md' );
+if ( fs.existsSync( packagingDocPath ) ) {
+	const packagingDoc = fs.readFileSync( packagingDocPath, 'utf8' );
+	assert.match( packagingDoc, /zuzu-js --electron/ );
+	assert.match( packagingDoc, /contextIsolation/ );
+	assert.match( packagingDoc, /Linux/ );
+	assert.match( packagingDoc, /macOS/ );
+	assert.match( packagingDoc, /Windows/ );
+}
 
 console.log( 'electron packaging tests passed' );

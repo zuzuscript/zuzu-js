@@ -4,6 +4,7 @@ const assert = require( 'node:assert/strict' );
 const fs = require( 'node:fs' );
 const os = require( 'node:os' );
 const path = require( 'node:path' );
+const projectPaths = require( '../lib/paths' );
 
 const {
 	createElectronGuiBridge,
@@ -11,7 +12,7 @@ const {
 } = require( '../lib/electron/main' );
 const { createElectronRuntime } = require( '../lib/zuzu' );
 
-const repoRoot = path.resolve( __dirname, '..', '..', '..' );
+const repoRoot = projectPaths.projectRoot;
 const pending = [];
 let lifecycleReady = Promise.resolve();
 
@@ -193,7 +194,7 @@ function createFakeElectron() {
 		} );
 		const filename = path.join(
 			repoRoot,
-			`t/ztests/std/gui/_phase${phase}.zzs`,
+			`stdlib/tests/std/gui/_phase${phase}.zzs`,
 		);
 		const result = runtime.runSource(
 			fs.readFileSync( filename, 'utf8' ),

@@ -3,13 +3,14 @@
 const assert = require( 'node:assert/strict' );
 const fs = require( 'node:fs' );
 const path = require( 'node:path' );
+const projectPaths = require( '../lib/paths' );
 const {
 	ZuzuScript,
 	createNodeRuntime,
 	createBrowserRuntime,
 } = require( '../lib/zuzu' );
 
-const repoRoot = path.resolve( __dirname, '..', '..', '..' );
+const repoRoot = projectPaths.projectRoot;
 
 {
 	const nodeRuntime = createNodeRuntime( { repoRoot } );

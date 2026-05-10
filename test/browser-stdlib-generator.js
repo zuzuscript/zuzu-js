@@ -5,23 +5,12 @@ const childProcess = require( 'node:child_process' );
 const fs = require( 'node:fs' );
 const os = require( 'node:os' );
 const path = require( 'node:path' );
+const projectPaths = require( '../lib/paths' );
 const { createBrowserRuntime } = require( '../lib/zuzu' );
 
-const repoRoot = path.resolve( __dirname, '..', '..', '..' );
-const generator = path.join(
-	repoRoot,
-	'extras',
-	'zuzu-js',
-	'bin',
-	'generate-browser-stdlib'
-);
-const builder = path.join(
-	repoRoot,
-	'extras',
-	'zuzu-js',
-	'bin',
-	'build-browser-bundle'
-);
+const repoRoot = projectPaths.projectRoot;
+const generator = path.join( repoRoot, 'bin', 'generate-browser-stdlib' );
+const builder = path.join( repoRoot, 'bin', 'build-browser-bundle' );
 
 function makeTempDir() {
 	return fs.mkdtempSync( path.join( os.tmpdir(), 'zuzu-browser-stdlib-' ) );
@@ -334,7 +323,7 @@ function reportModules( run ) {
 	assert.equal( run.status, 0, run.stderr );
 	assert.match(
 		run.stderr,
-		/std\/string\truntime-js\t.*extras\/zuzu-js\/modules\/std\/string\.js/u
+		/std\/string\truntime-js\t.*zuzu-js\/modules\/std\/string\.js/u
 	);
 	assert.match(
 		run.stderr,

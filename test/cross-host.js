@@ -47,7 +47,7 @@ function runOnHost( host, source ) {
 	assert.equal( result.status, 0, result.stderr );
 	assert.equal(
 		result.stdout,
-		`/:/tmp/zuzu/a:/tmp/zuzu/b:/extras/zuzu-js/modules:/t/modules:/modules\n`
+		`/:/tmp/zuzu/a:/tmp/zuzu/b:/modules:/stdlib/test-modules:/t/modules:/stdlib/modules\n`
 	);
 }
 

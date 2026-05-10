@@ -1,18 +1,24 @@
 'use strict';
 
 const assert = require( 'node:assert/strict' );
+const path = require( 'node:path' );
 const { spawnSync } = require( 'node:child_process' );
 
 const { createNodeRuntime } = require( '../lib/zuzu' );
 const marshal = require( '../modules/std/marshal' );
 const { BinaryString } = require( '../lib/runtime-helpers' );
+const projectPaths = require( '../lib/paths' );
 
-const repoRoot = require( 'node:path' ).resolve( __dirname, '..', '..', '..' );
+const repoRoot = projectPaths.projectRoot;
+const commands = [
+	process.env.ZUZU_PERL_BIN,
+	process.env.ZUZU_RUST_BIN,
+].filter( Boolean );
 
 function runZuzuJs( source ) {
 	const runtime = createNodeRuntime( {
 		repoRoot,
-		includePaths: [ 't/modules' ],
+		includePaths: [ 'stdlib/test-modules' ],
 	} );
 	const result = runtime.runSource( source, { filename: '<marshal-user-object-test>' } );
 	assert.equal( result.status, 0, result.stderr );
@@ -22,7 +28,7 @@ function runZuzuJs( source ) {
 function runCommand( command, source ) {
 	const result = spawnSync(
 		command,
-		[ '-It/modules', '-e', source ],
+		[ '-Istdlib/test-modules', '-e', source ],
 		{ cwd: repoRoot, encoding: 'utf8' }
 	);
 	assert.equal( result.status, 0, result.stderr || result.stdout );
@@ -93,7 +99,7 @@ const simpleObjectSource = `
 
 {
 	const jsBlob = runZuzuJs( simpleObjectSource );
-	for ( const command of [ 'bin/zuzu', 'extras/zuzu-rust/target/release/zuzu-rust' ] ) {
+	for ( const command of commands ) {
 		const output = runCommand(
 			command,
 			`
@@ -111,7 +117,7 @@ const simpleObjectSource = `
 }
 
 {
-	for ( const command of [ 'bin/zuzu', 'extras/zuzu-rust/target/release/zuzu-rust' ] ) {
+	for ( const command of commands ) {
 		const blob = runCommand( command, simpleObjectSource );
 		const loaded = marshal.load( binaryFromBase64( blob ) );
 		assert.equal( loaded.constructor.name, 'SimpleBox' );

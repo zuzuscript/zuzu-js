@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 'use strict';
 
-const path = require( 'node:path' );
 const { createNodeRuntime } = require( '../lib/runtime-entrypoints' );
 const { runCliAsync } = require( '../lib/cli' );
+const paths = require( '../lib/paths' );
 
 runCliAsync( process.argv.slice( 2 ), ( options ) => createNodeRuntime( {
-	repoRoot: path.resolve( __dirname, '..', '..', '..' ),
+	repoRoot: paths.projectRoot,
 	includePaths: options.includePaths,
 	denyCapabilities: options.denyCapabilities,
 	denyModules: options.denyModules,

@@ -9,7 +9,7 @@ for arg in "$@"; do
 		printf '%s\n' \
 			"Usage: build-browser-bundle [OPTIONS]" \
 			"" \
-			"Build extras/zuzu-js/dist/zuzu-browser.js and zuzu-browser-worker.js." \
+			"Build dist/zuzu-browser.js and zuzu-browser-worker.js." \
 			"" \
 			"Options:" \
 			"  -M DIR                 Add a pure ZuzuScript module directory." \

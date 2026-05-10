@@ -2,9 +2,10 @@
 
 const assert = require( 'node:assert/strict' );
 const path = require( 'node:path' );
+const projectPaths = require( '../lib/paths' );
 const { ZuzuScript, createNodeHost } = require( '../lib/zuzu' );
 
-const repoRoot = path.resolve( __dirname, '..', '..', '..' );
+const repoRoot = projectPaths.projectRoot;
 const runtime = new ZuzuScript( {
 	host: createNodeHost( { repoRoot } ),
 } );

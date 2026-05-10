@@ -5,20 +5,21 @@ const fs = require( 'node:fs' );
 const http = require( 'node:http' );
 const path = require( 'node:path' );
 const { spawn } = require( 'node:child_process' );
+const paths = require( '../lib/paths' );
 
-const repoRoot = path.resolve( __dirname, '..', '..', '..' );
-const ztestsDir = path.join( repoRoot, 't', 'ztests' );
+const repoRoot = paths.projectRoot;
+const ztestsDirs = [ paths.languageTestsRoot, paths.stdlibTestsRoot ];
 const defaultOutputPath = path.join(
-	ztestsDir,
+	paths.stdlibTestsRoot,
 	'browser-implementation-matrix.json',
 );
-const runnerDir = path.join( repoRoot, 'extras', 'zuzu-js', 'lib', 'browser-ztests' );
+const runnerDir = path.join( repoRoot, 'lib', 'browser-ztests' );
 const electronCommand = process.env.ZUZU_JS_BROWSER_ELECTRON_COMMAND
-	|| path.join( repoRoot, 'extras', 'zuzu-js', 'node_modules', '.bin', 'electron' );
+	|| path.join( repoRoot, 'node_modules', '.bin', 'electron' );
 
 function usage() {
 	return [
-		'Usage: extras/zuzu-js/bin/generate-browser-implementation-matrix-json [options]',
+		'Usage: bin/generate-browser-implementation-matrix-json [options]',
 		'',
 		'Options:',
 		'  --timeout <seconds>      Per-test timeout passed to the browser harness.',
@@ -109,9 +110,11 @@ function discoverZtests( dir ) {
 
 function discoverVirtualFiles() {
 	const roots = [
-		path.join( repoRoot, 'modules' ),
-		path.join( repoRoot, 't', 'modules' ),
-		path.join( repoRoot, 't', 'ztests' ),
+		paths.pureModuleRoot,
+		paths.stdlibTestModuleRoot,
+		paths.localTestModuleRoot,
+		paths.languageTestsRoot,
+		paths.stdlibTestsRoot,
 	];
 	const files = Object.create( null );
 	for ( const root of roots ) {
@@ -142,7 +145,10 @@ function walkZuzuFiles( dir ) {
 }
 
 function selectedTests( onlyPattern ) {
-	let tests = discoverZtests( ztestsDir );
+	let tests = ztestsDirs
+		.filter( (dir) => fs.existsSync( dir ) )
+		.flatMap( (dir) => discoverZtests( dir ) )
+		.sort();
 	if ( onlyPattern != null ) {
 		const regex = new RegExp( onlyPattern );
 		tests = tests.filter( (testPath) => {
@@ -239,11 +245,11 @@ function createServer( manifest, onResults ) {
 			return;
 		}
 		if ( req.method === 'GET' && url.pathname === '/extras/zuzu-js/dist/zuzu-browser.js' ) {
-			sendFile( res, path.join( repoRoot, 'extras', 'zuzu-js', 'dist', 'zuzu-browser.js' ) );
+			sendFile( res, path.join( paths.distRoot, 'zuzu-browser.js' ) );
 			return;
 		}
 		if ( req.method === 'GET' && url.pathname === '/extras/zuzu-js/dist/zuzu-browser-worker.js' ) {
-			sendFile( res, path.join( repoRoot, 'extras', 'zuzu-js', 'dist', 'zuzu-browser-worker.js' ) );
+			sendFile( res, path.join( paths.distRoot, 'zuzu-browser-worker.js' ) );
 			return;
 		}
 		if ( req.method === 'POST' && url.pathname === '/__zuzu_browser_ztests/results' ) {
@@ -326,11 +332,11 @@ function runElectronChild( options ) {
 }
 
 async function runParent( options ) {
-	const bundlePath = path.join( repoRoot, 'extras', 'zuzu-js', 'dist', 'zuzu-browser.js' );
+	const bundlePath = path.join( paths.distRoot, 'zuzu-browser.js' );
 	if ( !fs.existsSync( bundlePath ) ) {
 		throw new Error(
 			`Missing browser bundle: ${bundlePath}\n` +
-			'Run extras/zuzu-js/bin/build-browser-bundle first.'
+			'Run bin/build-browser-bundle first.'
 		);
 	}
 	const manifest = {

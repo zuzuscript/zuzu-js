@@ -5,10 +5,11 @@ const fs = require( 'node:fs' );
 const path = require( 'node:path' );
 const { collectStaticImports } = require( '../lib/compiler' );
 const { stripPod } = require( '../lib/transpiler' );
+const paths = require( '../lib/paths' );
 
-const repoRoot = path.resolve( __dirname, '..', '..', '..' );
-const jsRoot = path.join( repoRoot, 'extras', 'zuzu-js', 'modules' );
-const pureRoot = path.join( repoRoot, 'modules' );
+const repoRoot = paths.projectRoot;
+const jsRoot = paths.jsModuleRoot;
+const pureRoot = paths.pureModuleRoot;
 
 const DEFAULT_RUNTIME_JS_MODULES = [
 	'javascript',
@@ -179,7 +180,7 @@ function parseArgs( argv ) {
 			usageError( `unexpected positional argument: ${arg}` );
 		}
 	}
-	options.outDir ||= path.join( repoRoot, 'extras', 'zuzu-js', 'dist' );
+	options.outDir ||= paths.distRoot;
 	return options;
 }
 
@@ -526,7 +527,7 @@ function emitBrowserStdlib( outDir, modules, customRootCount ) {
 			'const browserStdlib = createBrowserStdlib();',
 			'browserStdlib.workerSource = browserWorkerSource;',
 			'globalThis.__ZUZU_BROWSER_DEFAULT_RUNTIME_OPTIONS__ = browserStdlib;',
-			`module.exports = require( ${JSON.stringify( requirePathFromOutDir( outDir, path.join( repoRoot, 'extras', 'zuzu-js', 'lib', 'browser-bundle-entry.js' ) ) )} );`,
+			`module.exports = require( ${JSON.stringify( requirePathFromOutDir( outDir, path.join( repoRoot, 'lib', 'browser-bundle-entry.js' ) ) )} );`,
 			'',
 		].join( '\n' ),
 		'utf8'
@@ -540,7 +541,7 @@ function emitBrowserStdlib( outDir, modules, customRootCount ) {
 			"const { createBrowserStdlib } = require( './browser-stdlib.generated' );",
 			'',
 			'globalThis.__ZUZU_BROWSER_DEFAULT_RUNTIME_OPTIONS__ = createBrowserStdlib();',
-			`const { installBrowserWorker } = require( ${JSON.stringify( requirePathFromOutDir( outDir, path.join( repoRoot, 'extras', 'zuzu-js', 'lib', 'browser-worker-entry.js' ) ) )} );`,
+			`const { installBrowserWorker } = require( ${JSON.stringify( requirePathFromOutDir( outDir, path.join( repoRoot, 'lib', 'browser-worker-entry.js' ) ) )} );`,
 			'installBrowserWorker( globalThis.__ZUZU_BROWSER_DEFAULT_RUNTIME_OPTIONS__ );',
 			'',
 		].join( '\n' ),

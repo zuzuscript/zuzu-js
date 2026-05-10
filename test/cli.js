@@ -4,10 +4,11 @@ const assert = require( 'node:assert/strict' );
 const fs = require( 'node:fs' );
 const os = require( 'node:os' );
 const path = require( 'node:path' );
+const projectPaths = require( '../lib/paths' );
 const { spawnSync } = require( 'node:child_process' );
 
 const cliPath = path.join( __dirname, '..', 'bin', 'zuzu-js' );
-const repoRoot = path.resolve( __dirname, '..', '..', '..' );
+const repoRoot = projectPaths.projectRoot;
 
 function runCli( args, options = {} ) {
 	return spawnSync( process.execPath, [ cliPath, ...args ], {
