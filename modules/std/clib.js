@@ -2,6 +2,7 @@
 
 const path = require( 'node:path' );
 const koffi = require( 'koffi' );
+const projectPaths = require( '../../lib/paths' );
 const { BinaryString, ZuzuBinary } = require( '../../lib/runtime-helpers' );
 
 function loadLibc() {
@@ -215,7 +216,9 @@ function finishReturn( owner, desc, raw, args ) {
 
 class CLib {
 	static open( rawPath ) {
-		const libraryPath = path.resolve( String( rawPath ?? '' ) );
+		const libraryPath = path.resolve(
+			projectPaths.resolveCompatibilityPath( rawPath )
+		);
 		let loaded;
 		try {
 			loaded = koffi.load( libraryPath );

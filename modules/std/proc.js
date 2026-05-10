@@ -1,6 +1,8 @@
 'use strict';
 
 const { spawn, spawnSync } = require( 'node:child_process' );
+const fs = require( 'node:fs' );
+const path = require( 'node:path' );
 const { Task, traceBlockingOperation } = require( './task' );
 
 const signalCallbacks = new Map();
@@ -27,6 +29,18 @@ function toCommandArray( command, argv ) {
 	return [ String( command ?? '' ), ...args ];
 }
 
+function normalizeCommandForCwd( cmd ) {
+	const out = cmd.slice();
+	if (
+		out.length > 0
+		&& !path.isAbsolute( out[0] )
+		&& /[\\/]/u.test( out[0] )
+	) {
+		out[0] = path.resolve( out[0] );
+	}
+	return out;
+}
+
 function resultOk( result ) {
 	if ( !isPlainObject( result ) ) {
 		return 0;
@@ -43,6 +57,51 @@ function resultOk( result ) {
 	return 1;
 }
 
+function cwdErrorResult( cmd, options, message ) {
+	const captureStdout = Object.prototype.hasOwnProperty.call( options, 'capture_stdout' )
+		? Boolean( options.capture_stdout )
+		: true;
+	const captureStderr = Object.prototype.hasOwnProperty.call( options, 'capture_stderr' )
+		? Boolean( options.capture_stderr )
+		: true;
+	return {
+		command: cmd.slice(),
+		exit_code: 0,
+		signal: 0,
+		core_dump: 0,
+		ok: 0,
+		stdout: captureStdout ? '' : null,
+		stderr: captureStderr ? '' : null,
+		error: message,
+		timed_out: 0,
+	};
+}
+
+function normalizeCwd( options ) {
+	if ( !Object.prototype.hasOwnProperty.call( options, 'cwd' ) ) {
+		return { cwd: null };
+	}
+	const cwd = String( options.cwd ?? '' );
+	if ( cwd === '' ) {
+		return { cwd: null };
+	}
+	let stat;
+	try {
+		stat = fs.statSync( cwd );
+	}
+	catch ( err ) {
+		return {
+			error: `cwd does not exist: ${cwd}`,
+		};
+	}
+	if ( !stat.isDirectory() ) {
+		return {
+			error: `cwd is not a directory: ${cwd}`,
+		};
+	}
+	return { cwd };
+}
+
 function statusText( result ) {
 	if ( !isPlainObject( result ) ) {
 		return 'invalid result';
@@ -57,6 +116,7 @@ function statusText( result ) {
 }
 
 function runCommand( cmd, options = {} ) {
+	cmd = normalizeCommandForCwd( cmd );
 	const stdin = Object.prototype.hasOwnProperty.call( options, 'stdin' )
 		? String( options.stdin ?? '' )
 		: '';
@@ -69,6 +129,10 @@ function runCommand( cmd, options = {} ) {
 	const mergeStderr = Boolean( options.merge_stderr );
 	const timeoutSeconds = Number( options.timeout || 0 );
 	const envOverrides = isPlainObject( options.env ) ? options.env : null;
+	const cwd = normalizeCwd( options );
+	if ( cwd.error ) {
+		return cwdErrorResult( cmd, options, cwd.error );
+	}
 
 	const spawnOptions = {
 		input: stdin,
@@ -84,6 +148,10 @@ function runCommand( cmd, options = {} ) {
 	if ( timeoutSeconds > 0 ) {
 		spawnOptions.timeout = Math.floor( timeoutSeconds * 1000 );
 		spawnOptions.killSignal = 'SIGALRM';
+	}
+
+	if ( cwd.cwd != null ) {
+		spawnOptions.cwd = cwd.cwd;
 	}
 
 	if ( envOverrides ) {
@@ -120,7 +188,7 @@ function runCommand( cmd, options = {} ) {
 	if ( timedOut ) {
 		result.error = `timeout after ${timeoutSeconds}s`;
 	}
-	else if ( spawned.error ) {
+	else if ( spawned.error && !Number.isInteger( spawned.status ) ) {
 		result.error = spawned.error.message || String( spawned.error );
 	}
 
@@ -129,6 +197,7 @@ function runCommand( cmd, options = {} ) {
 }
 
 function runCommandAsync( cmd, options = {} ) {
+	cmd = normalizeCommandForCwd( cmd );
 	let child = null;
 	let timeoutTimer = null;
 	let timedOut = false;
@@ -161,6 +230,11 @@ function runCommandAsync( cmd, options = {} ) {
 	const mergeStderr = Boolean( options.merge_stderr );
 	const timeoutSeconds = Number( options.timeout || 0 );
 	const envOverrides = isPlainObject( options.env ) ? options.env : null;
+	const cwd = normalizeCwd( options );
+	if ( cwd.error ) {
+		task._resolve( cwdErrorResult( cmd, options, cwd.error ) );
+		return task;
+	}
 	const spawnOptions = {
 		stdio: [
 			'pipe',
@@ -178,6 +252,9 @@ function runCommandAsync( cmd, options = {} ) {
 				spawnOptions.env[key] = String( value );
 			}
 		}
+	}
+	if ( cwd.cwd != null ) {
+		spawnOptions.cwd = cwd.cwd;
 	}
 	let stdout = '';
 	let stderr = '';

@@ -244,11 +244,23 @@ function createServer( manifest, onResults ) {
 			res.end( 'ZuzuScript browser HTTP fixture\n' );
 			return;
 		}
-		if ( req.method === 'GET' && url.pathname === '/extras/zuzu-js/dist/zuzu-browser.js' ) {
+		if (
+			req.method === 'GET'
+			&& (
+				url.pathname === '/dist/zuzu-browser.js'
+				|| url.pathname === '/extras/zuzu-js/dist/zuzu-browser.js'
+			)
+		) {
 			sendFile( res, path.join( paths.distRoot, 'zuzu-browser.js' ) );
 			return;
 		}
-		if ( req.method === 'GET' && url.pathname === '/extras/zuzu-js/dist/zuzu-browser-worker.js' ) {
+		if (
+			req.method === 'GET'
+			&& (
+				url.pathname === '/dist/zuzu-browser-worker.js'
+				|| url.pathname === '/extras/zuzu-js/dist/zuzu-browser-worker.js'
+			)
+		) {
 			sendFile( res, path.join( paths.distRoot, 'zuzu-browser-worker.js' ) );
 			return;
 		}

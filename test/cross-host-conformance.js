@@ -26,7 +26,7 @@ function assertParity( testName, source, options = {} ) {
 }
 
 function makeBrowserHostWithStdModules( options = {} ) {
-	const stdJsRoot = path.join( repoRoot, 'extras', 'zuzu-js', 'modules' );
+	const stdJsRoot = path.join( repoRoot, 'modules' );
 	const jsModules = { ...( options.jsModules || {} ) };
 	for ( const rel of [
 		'std/string.js',
@@ -191,7 +191,7 @@ for ( const testCase of pureSnippets ) {
 }
 
 {
-	const stdJsRoot = path.join( repoRoot, 'extras', 'zuzu-js', 'modules' );
+	const stdJsRoot = path.join( repoRoot, 'modules' );
 	const jsModules = {};
 	for ( const rel of [ 'std/time.js', 'std/net/http.js' ] ) {
 		const full = path.join( stdJsRoot, rel );

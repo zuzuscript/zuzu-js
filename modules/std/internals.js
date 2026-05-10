@@ -70,6 +70,7 @@ function parseUserFrames() {
 		if (
 			( thisFile != null && file === thisFile ) ||
 			/[\\/]extras[\\/]zuzu-js[\\/]lib[\\/]runtime\.js$/.test( file ) ||
+			/[\\/]zuzu-js[\\/]lib[\\/]runtime\.js$/.test( file ) ||
 			/[\\/]zuzu-browser\.js$/.test( file ) ||
 			file.startsWith( 'node:' ) ||
 			file === '[stdin]'

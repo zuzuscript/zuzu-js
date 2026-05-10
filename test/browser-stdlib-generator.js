@@ -151,7 +151,7 @@ function reportModules( run ) {
 		'std/path/zz/operators',
 	] );
 	const stdlib = loadStdlib( run );
-	assert.ok( stdlib.jsModules['/extras/zuzu-js/modules/std/string.js'] );
+	assert.ok( stdlib.jsModules['/modules/std/string.js'] );
 	assert.ok(
 		stdlib.virtualFiles['/modules/std/string/quoted_printable.zzm']
 	);
@@ -349,7 +349,7 @@ function reportModules( run ) {
 	const run = runGenerator( [ '--include', 'std/net/smtp' ] );
 	assert.equal( run.status, 0, run.stderr );
 	const stdlib = loadStdlib( run );
-	assert.ok( stdlib.jsModules['/extras/zuzu-js/modules/std/net/smtp.js'] );
+	assert.ok( stdlib.jsModules['/modules/std/net/smtp.js'] );
 	const browser = createBrowserRuntime( stdlib );
 	const loaded = browser.runtime.loadModule( 'std/net/smtp', '/app/main.zzs' );
 	assert.equal( loaded.Mailer.capabilities().smtp, false );

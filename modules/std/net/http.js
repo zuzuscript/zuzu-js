@@ -661,6 +661,13 @@ async function _asyncRequest( spec, uaConfig, signal = null ) {
 		if ( typeof fetch === 'function' ) {
 			return await _fetchRequest( spec, uaConfig, signal );
 		}
+		if (
+			hostName !== 'browser'
+			&& String( _urlWithQuery( spec.url, spec.query ) ).startsWith( 'https:' )
+			&& _nodeHttps()
+		) {
+			return await _nodeHttpsRequest( spec, uaConfig, signal );
+		}
 		return _curlRequest( spec, uaConfig );
 	}
 	catch ( err ) {

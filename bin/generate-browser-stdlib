@@ -185,7 +185,7 @@ function parseArgs( argv ) {
 }
 
 function generatedPathForJsModule( logicalName ) {
-	return `/extras/zuzu-js/modules/${logicalName}.js`;
+	return `/modules/${logicalName}.js`;
 }
 
 function generatedPathForRepoPureModule( logicalName, ext ) {

@@ -3,6 +3,7 @@
 const fs = require( 'node:fs' );
 const os = require( 'node:os' );
 const path = require( 'node:path' );
+const projectPaths = require( '../../lib/paths' );
 const { BinaryString } = require( '../../lib/runtime-helpers' );
 const { Task, traceBlockingOperation } = require( './task' );
 
@@ -205,7 +206,26 @@ function statToDict( stats ) {
 
 class Path {
 	constructor( rawPath ) {
-		this.value = String( rawPath );
+		const pathValue = (
+			rawPath
+			&& typeof rawPath === 'object'
+			&& !Array.isArray( rawPath )
+			&& (
+				Object.prototype.hasOwnProperty.call( rawPath, 'path' )
+				|| (
+					typeof rawPath.get === 'function'
+					&& typeof rawPath.has === 'function'
+					&& rawPath.has( 'path' )
+				)
+			)
+		)
+			? (
+				typeof rawPath.get === 'function'
+					? rawPath.get( 'path' )
+					: rawPath.path
+			)
+			: rawPath;
+		this.value = projectPaths.resolveCompatibilityPath( pathValue );
 		this._linePos = 0;
 		this._lineMode = 'text';
 	}
@@ -428,7 +448,7 @@ class Path {
 	static split( source ) { return path.normalize( String( source ) ).split( path.sep ).filter( Boolean ); }
 	static normalize( source ) { return new Path( path.normalize( String( source ) ) ); }
 	static glob( pattern ) {
-		const text = String( pattern );
+		const text = projectPaths.resolveCompatibilityPath( pattern );
 		const star = text.indexOf( '*' );
 		if ( star < 0 ) {
 			return fs.existsSync( text ) ? [ new Path( text ) ] : [];

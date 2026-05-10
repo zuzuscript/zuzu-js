@@ -3,9 +3,10 @@
 
 const fs = require( 'node:fs' );
 const path = require( 'node:path' );
+const { spawnSync } = require( 'node:child_process' );
 const vm = require( 'node:vm' );
+const projectPaths = require( './lib/paths' );
 const {
-	ZuzuScript,
 	parseTap,
 	transpile,
 	normalizeTranspilerName,
@@ -28,33 +29,33 @@ function parseTranspilerArg( argv ) {
 }
 
 function collectZtests( rootDir ) {
-	return collectZtestsWithOptions( rootDir, { includeStd: false } );
-}
-
-function collectZtestsWithOptions( rootDir, options = {} ) {
-	const includeStd = options.includeStd === true;
 	const out = [];
 	for ( const entry of fs.readdirSync( rootDir, { withFileTypes: true } ) ) {
 		const full = path.join( rootDir, entry.name );
 		if ( entry.isDirectory() ) {
-			out.push( ...collectZtestsWithOptions( full, options ) );
+			out.push( ...collectZtests( full ) );
 			continue;
 		}
-		if ( !entry.isFile() || !full.endsWith( '.zzs' ) ) {
-			continue;
-		}
-		const isStd = full.includes( `${path.sep}std${path.sep}` );
-		if ( includeStd || !isStd ) {
+		if ( entry.isFile() && full.endsWith( '.zzs' ) ) {
 			out.push( full );
 		}
 	}
 	return out.sort();
 }
 
+function collectZtestsWithOptions( options = {} ) {
+	const includeStd = options.includeStd === true;
+	const out = collectZtests( projectPaths.languageTestsRoot );
+	if ( includeStd ) {
+		out.push( ...collectZtests( projectPaths.stdlibTestsRoot ) );
+	}
+	return out.sort();
+}
 
-const repoRoot = path.resolve( __dirname, '..', '..' );
+
+const repoRoot = projectPaths.projectRoot;
 process.chdir( repoRoot );
-const ztestsDir = path.join( repoRoot, 't', 'ztests' );
+process.env.ZUZU = './bin/zuzu-js';
 let selectedTranspiler = parseTranspilerArg( process.argv );
 if ( selectedTranspiler != null ) {
 	try {
@@ -65,13 +66,12 @@ if ( selectedTranspiler != null ) {
 		process.exit( 2 );
 	}
 }
-const runtime = new ZuzuScript( {
-	repoRoot,
-	transpiler: selectedTranspiler,
-} );
 const includeStdTests = process.argv.includes( '--include-std' ) || process.env.ZUZU_JS_INCLUDE_STD === '1';
-const ztests = collectZtestsWithOptions( ztestsDir, { includeStd: includeStdTests } );
-const unsupportedFiles = new Set( [ 't/ztests/perl.zzs' ] );
+const ztests = collectZtestsWithOptions( { includeStd: includeStdTests } );
+const unsupportedFiles = new Set( [
+	'languagetests/perl.zzs',
+	'stdlib/tests/perl.zzs',
+] );
 const dumpRequested = process.argv.includes( '--dump-transpiled' ) || process.env.ZUZU_JS_DUMP_TRANSPILED === '1';
 const dumpRoot = process.env.ZUZU_JS_DUMP_DIR || path.join( '/tmp', 'zuzu-js-transpiled' );
 const jsonSummaryPathArgIndex = process.argv.indexOf( '--json-summary' );
@@ -110,6 +110,23 @@ function dumpTranspiled( rel, jsCode ) {
 	fs.writeFileSync( outPath, jsCode, 'utf8' );
 }
 
+function runTestFile( rel ) {
+	const args = [];
+	if ( selectedTranspiler != null ) {
+		args.push( '--transpiler', selectedTranspiler );
+	}
+	args.push( rel );
+	return spawnSync( './bin/zuzu-js', args, {
+		cwd: repoRoot,
+		env: {
+			...process.env,
+			ZUZU: './bin/zuzu-js',
+		},
+		encoding: 'utf8',
+		maxBuffer: 64 * 1024 * 1024,
+	});
+}
+
 if ( ztests.length === 0 ) {
 	console.error( 'No .zzs tests found.' );
 	process.exit( 1 );
@@ -136,7 +153,7 @@ for ( const testFile of ztests ) {
 	let jsCode;
 	try {
 		jsCode = transpile( source, {
-			transpiler: runtime.transpiler,
+			transpiler: selectedTranspiler,
 		} );
 	}
 	catch ( err ) {
@@ -170,7 +187,19 @@ for ( const testFile of ztests ) {
 		} );
 		continue;
 	}
-	const result = await Promise.resolve( runtime.runFile( testFile ) );
+	const result = runTestFile( rel );
+	if ( result.error ) {
+		failedFiles++;
+		dumpTranspiled( rel, jsCode );
+		console.error( `not ok - ${rel} (${result.error.message})` );
+		fileOutcomes.push( {
+			file: rel,
+			outcome: 'failed',
+			reason: 'spawn failed',
+			detail: result.error.message,
+		} );
+		continue;
+	}
 	if ( result.status !== 0 ) {
 		failedFiles++;
 		dumpTranspiled( rel, jsCode );
@@ -187,6 +216,16 @@ for ( const testFile of ztests ) {
 		continue;
 	}
 	const tap = parseTap( result.stdout );
+	if ( tap.skipAll ) {
+		skippedFiles++;
+		fileOutcomes.push( {
+			file: rel,
+			outcome: 'skipped',
+			reason: tap.planDirective || 'skip all',
+		} );
+		console.log( `ok - ${rel} (skipped: ${tap.planDirective || 'skip all'})` );
+		continue;
+	}
 	if ( tap.failures > 0 || !tap.validPlan || tap.tests === 0 ) {
 		failedFiles++;
 		dumpTranspiled( rel, jsCode );
