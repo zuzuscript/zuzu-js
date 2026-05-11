@@ -106,7 +106,23 @@ function createVmWorkerFactory() {
 }
 
 vm.createContext( context );
-vm.runInContext( fs.readFileSync( bundlePath, 'utf8' ), context, {
+const bundleSource = fs.readFileSync( bundlePath, 'utf8' );
+assert.doesNotMatch(
+	bundleSource,
+	/extras\/zuzu-js\/lib\/host\/node-host\.js/u,
+	'browser bundle must not include the Node host'
+);
+assert.doesNotMatch(
+	bundleSource,
+	/extras\/zuzu-js\/lib\/runtime-entrypoints\.js/u,
+	'browser bundle must not include Node runtime entrypoints'
+);
+assert.doesNotMatch(
+	bundleSource,
+	/lib\/paths\.js/u,
+	'browser bundle must not include Node filesystem path helpers'
+);
+vm.runInContext( bundleSource, context, {
 	filename: bundlePath,
 } );
 

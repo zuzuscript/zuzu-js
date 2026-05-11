@@ -1225,7 +1225,8 @@ function buildFunctionWithRuntime( bindingName, source, env = {} ) {
 		} ).runtime;
 	}
 	else {
-		const { createNodeRuntime } = require( '../../../lib/runtime-entrypoints' );
+		const entrypointsModule = '../../../lib/' + 'runtime-entrypoints';
+		const { createNodeRuntime } = require( entrypointsModule );
 		runtime = createNodeRuntime( runtimeOptions );
 	}
 	const js = runtime.transpile(
