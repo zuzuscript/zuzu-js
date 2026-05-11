@@ -83,6 +83,20 @@
 	</table>
 	<h2>Matrix JSON</h2>
 	<pre id="json"></pre>
+	<script>
+		window.__zuzuBrowserBundleLoadErrors = [];
+		window.addEventListener( 'error', ( event ) => {
+			window.__zuzuBrowserBundleLoadErrors.push(
+				`${event.message || 'script error'} at ${event.filename || '<unknown>'}:${event.lineno || 0}:${event.colno || 0}\n${event.error && event.error.stack || ''}`
+			);
+		} );
+		window.addEventListener( 'unhandledrejection', ( event ) => {
+			const reason = event.reason || 'unhandled rejection';
+			window.__zuzuBrowserBundleLoadErrors.push(
+				reason && reason.stack ? reason.stack : String( reason )
+			);
+		} );
+	</script>
 	<script src="/dist/zuzu-browser.js"></script>
 	<script src="/__zuzu_browser_ztests/runner.js"></script>
 </body>
