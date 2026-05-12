@@ -25,8 +25,9 @@ assert.equal( result.status, 0, result.stderr );
 const dumped = JSON.parse( result.stdout );
 assert.equal( dumped.runtime, 'zuzu-js' );
 assert.equal( dumped.language_version, 0 );
-assert.equal( typeof dumped.inc, 'string' );
+assert.ok( Array.isArray( dumped.inc ) );
 assert.ok( dumped.inc.includes( projectPaths.jsModuleRoot ) );
+assert.ok( dumped.inc.includes( projectPaths.pureModuleRoot ) );
 assert.equal( typeof dumped.nodejs_version, 'string' );
 assert.match( dumped.nodejs_version, /^\d+\.\d+\.\d+$/u );
 assert.ok( Object.prototype.hasOwnProperty.call( dumped, 'deny_fs' ) );
@@ -48,5 +49,12 @@ assert.equal( typeof dumped.deny_db, 'boolean' );
 assert.equal( typeof dumped.deny_clib, 'boolean' );
 assert.equal( dumped.deny_gui, true );
 assert.equal( typeof dumped.deny_worker, 'boolean' );
+
+const mutation = runtime.runSource(
+	'__system__{inc}.append( "/tmp/other" );',
+	{ filename: path.join( repoRoot, 'tmp', 'system-global-mutation.zzs' ) }
+);
+assert.equal( mutation.status, 1 );
+assert.match( mutation.stderr, /object is not extensible|read only|frozen/u );
 
 console.log( 'system global tests passed' );
