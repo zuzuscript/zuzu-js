@@ -750,6 +750,52 @@ function createFakeElectron() {
 	} ) );
 }
 
+{
+	const priorPending = pending.slice();
+	pending.push( Promise.all( priorPending ).then( () => {
+		const previousExitCode = process.exitCode;
+		const app = {
+			whenReady() {
+				return Promise.resolve();
+			},
+			on() {},
+			quit() {},
+			getAppPath() {
+				return path.join( repoRoot, 'bin' );
+			},
+		};
+		const tempDir = fs.mkdtempSync(
+			path.join( os.tmpdir(), 'zuzu-electron-root-' )
+		);
+		const scriptPath = path.join( tempDir, 'root.zzs' );
+		fs.writeFileSync(
+			scriptPath,
+			'from std/string import substr;\n'
+				+ 'die "wrong std/string" unless substr("abcdef", 1, 3) eq "bcd";\n',
+			'utf8'
+		);
+		return runElectronMain(
+			[ scriptPath ],
+			{
+				electron: {
+					app,
+					BrowserWindow: {
+						getAllWindows() {
+							return [];
+						},
+					},
+				},
+				guiBridge: createFakeBridge(),
+			}
+		).then( (status) => {
+			assert.equal( status, 0 );
+		} ).finally( () => {
+			process.exitCode = previousExitCode;
+			fs.rmSync( tempDir, { recursive: true, force: true } );
+		} );
+	} ) );
+}
+
 	Promise.all( pending ).then(
 	() => {
 		console.log( 'electron gui tests passed' );

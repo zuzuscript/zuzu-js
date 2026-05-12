@@ -1,6 +1,8 @@
 'use strict';
 
 const assert = require( 'node:assert/strict' );
+const fs = require( 'node:fs' );
+const os = require( 'node:os' );
 const path = require( 'node:path' );
 const projectPaths = require( '../lib/paths' );
 const { createNodeRuntime } = require( '../lib/zuzu' );
@@ -56,5 +58,48 @@ const mutation = runtime.runSource(
 );
 assert.equal( mutation.status, 1 );
 assert.match( mutation.stderr, /object is not extensible|read only|frozen/u );
+
+const fileResult = runtime.runSource(
+	'say( __file__.to_String() );',
+	{ filename: 'relative-main.zzs' }
+);
+assert.equal( fileResult.status, 0, fileResult.stderr );
+assert.equal( fileResult.stdout, 'relative-main.zzs\n' );
+
+const deniedRuntime = createNodeRuntime( {
+	repoRoot,
+	includePaths: [ path.join( repoRoot, 'modules' ) ],
+	denyCapabilities: [ 'fs' ],
+} );
+const deniedFile = deniedRuntime.runSource(
+	'say( typeof __file__ );',
+	{ filename: path.join( repoRoot, 'tmp', 'file-denied.zzs' ) }
+);
+assert.equal( deniedFile.status, 0, deniedFile.stderr );
+assert.equal( deniedFile.stdout, 'Null\n' );
+
+const tempDir = fs.mkdtempSync( path.join( os.tmpdir(), 'zuzu-js-file-global-' ) );
+const moduleDir = path.join( tempDir, 'modules' );
+fs.mkdirSync( moduleDir );
+const modulePath = path.join( moduleDir, 'file_probe.zzm' );
+fs.writeFileSync(
+	modulePath,
+	'const module_file := __file__.to_String();\n',
+	'utf8'
+);
+const moduleRuntime = createNodeRuntime( {
+	repoRoot,
+	includePaths: [ moduleDir ],
+} );
+const moduleResult = moduleRuntime.runSource(
+	`
+	from file_probe import module_file;
+	say( module_file );
+	`,
+	{ filename: path.join( tempDir, 'main.zzs' ) }
+);
+assert.equal( moduleResult.status, 0, moduleResult.stderr );
+assert.equal( moduleResult.stdout, `${modulePath}\n` );
+fs.rmSync( tempDir, { recursive: true, force: true } );
 
 console.log( 'system global tests passed' );

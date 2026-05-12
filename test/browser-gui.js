@@ -13,6 +13,7 @@ const {
 
 const repoRoot = projectPaths.projectRoot;
 const jsModuleRoot = projectPaths.jsModuleRoot;
+const pureModuleRoot = projectPaths.pureModuleRoot;
 
 function loadJsModules( rels ) {
 	const modules = {};
@@ -287,6 +288,7 @@ function matchesSelector( node, selector ) {
 function createBrowserRuntime( options = {} ) {
 	const host = createBrowserHost( {
 		repoRoot,
+		includePaths: options.includePaths || [ pureModuleRoot ],
 		...( Object.prototype.hasOwnProperty.call( options, 'guiBridge' )
 			? { guiBridge: options.guiBridge }
 			: {} ),

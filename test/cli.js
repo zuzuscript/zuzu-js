@@ -147,6 +147,40 @@ function runCli( args, options = {} ) {
 }
 
 {
+	const tmp = fs.mkdtempSync( path.join( os.tmpdir(), 'zuzu-js-cli-electron-' ) );
+	const fakeElectron = path.join( tmp, process.platform === 'win32'
+		? 'electron.cmd'
+		: 'electron' );
+	const lib = path.join( tmp, 'lib' );
+	const script = path.join( tmp, 'app.zzs' );
+	fs.mkdirSync( lib, { recursive: true } );
+	fs.writeFileSync( script, 'from greet import hi;\nsay( hi() );\n', 'utf8' );
+	if ( process.platform === 'win32' ) {
+		fs.writeFileSync(
+			fakeElectron,
+			'@echo off\r\nnode -e "console.log(JSON.stringify(process.argv.slice(1)))" %*\r\n',
+			'utf8'
+		);
+	}
+	else {
+		fs.writeFileSync(
+			fakeElectron,
+			'#!/usr/bin/env node\nconsole.log(JSON.stringify(process.argv.slice(2)));\n',
+			'utf8'
+		);
+		fs.chmodSync( fakeElectron, 0o755 );
+	}
+	const result = runCli(
+		[ '--electron', '-I', lib, script, 'arg' ],
+		{ env: { ZUZU_JS_ELECTRON_COMMAND: fakeElectron } }
+	);
+	assert.equal( result.status, 0 );
+	const launched = JSON.parse( result.stdout.trim() );
+	assert.equal( path.basename( launched[0] ), 'zuzu-js-electron' );
+	assert.deepEqual( launched.slice( 1 ), [ '-I', lib, script, 'arg' ] );
+}
+
+{
 	const tmp = fs.mkdtempSync( path.join( os.tmpdir(), 'zuzu-js-cli-' ) );
 	const lib = path.join( tmp, 'lib' );
 	fs.mkdirSync( lib, { recursive: true } );
