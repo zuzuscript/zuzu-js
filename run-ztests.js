@@ -56,6 +56,7 @@ function collectZtestsWithOptions( options = {} ) {
 const repoRoot = projectPaths.projectRoot;
 process.chdir( repoRoot );
 process.env.ZUZU = './bin/zuzu-js';
+process.env.FIXTURE_DIR = projectPaths.stdlibFixtureRoot;
 let selectedTranspiler = parseTranspilerArg( process.argv );
 if ( selectedTranspiler != null ) {
 	try {
@@ -121,6 +122,7 @@ function runTestFile( rel ) {
 		env: {
 			...process.env,
 			ZUZU: './bin/zuzu-js',
+			FIXTURE_DIR: projectPaths.stdlibFixtureRoot,
 		},
 		encoding: 'utf8',
 		maxBuffer: 64 * 1024 * 1024,

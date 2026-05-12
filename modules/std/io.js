@@ -3,7 +3,6 @@
 const fs = require( 'node:fs' );
 const os = require( 'node:os' );
 const path = require( 'node:path' );
-const projectPaths = require( '../../lib/paths' );
 const { BinaryString } = require( '../../lib/runtime-helpers' );
 const { Task, traceBlockingOperation } = require( './task' );
 
@@ -225,7 +224,7 @@ class Path {
 					: rawPath.path
 			)
 			: rawPath;
-		this.value = projectPaths.resolveCompatibilityPath( pathValue );
+		this.value = String( pathValue ?? '' );
 		this._linePos = 0;
 		this._lineMode = 'text';
 	}
@@ -448,7 +447,7 @@ class Path {
 	static split( source ) { return path.normalize( String( source ) ).split( path.sep ).filter( Boolean ); }
 	static normalize( source ) { return new Path( path.normalize( String( source ) ) ); }
 	static glob( pattern ) {
-		const text = projectPaths.resolveCompatibilityPath( pattern );
+		const text = String( pattern ?? '' );
 		const star = text.indexOf( '*' );
 		if ( star < 0 ) {
 			return fs.existsSync( text ) ? [ new Path( text ) ] : [];
