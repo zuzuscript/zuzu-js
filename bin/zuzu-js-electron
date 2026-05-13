@@ -2,8 +2,13 @@
 'use strict';
 
 const { runElectronMain } = require( '../lib/electron/main' );
+const { launchElectronScript } = require( '../lib/electron/launcher' );
 
-runElectronMain( process.argv.slice( 2 ) ).then(
+const run = process.versions && process.versions.electron
+	? runElectronMain
+	: launchElectronScript;
+
+run( process.argv.slice( 2 ) ).then(
 	(exitCode) => {
 		process.exitCode = exitCode;
 	},

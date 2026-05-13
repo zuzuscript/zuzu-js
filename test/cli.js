@@ -8,10 +8,22 @@ const projectPaths = require( '../lib/paths' );
 const { spawnSync } = require( 'node:child_process' );
 
 const cliPath = path.join( __dirname, '..', 'bin', 'zuzu-js' );
+const electronCliPath = path.join( __dirname, '..', 'bin', 'zuzu-js-electron' );
 const repoRoot = projectPaths.projectRoot;
 
 function runCli( args, options = {} ) {
 	return spawnSync( process.execPath, [ cliPath, ...args ], {
+		cwd: options.cwd || repoRoot,
+		encoding: 'utf8',
+		env: {
+			...process.env,
+			...( options.env || {} ),
+		},
+	} );
+}
+
+function runElectronCliBin( args, options = {} ) {
+	return spawnSync( process.execPath, [ electronCliPath, ...args ], {
 		cwd: options.cwd || repoRoot,
 		encoding: 'utf8',
 		env: {
@@ -178,6 +190,38 @@ function runCli( args, options = {} ) {
 	const launched = JSON.parse( result.stdout.trim() );
 	assert.equal( path.basename( launched[0] ), 'zuzu-js-electron' );
 	assert.deepEqual( launched.slice( 1 ), [ '-I', lib, script, 'arg' ] );
+}
+
+{
+	const tmp = fs.mkdtempSync( path.join( os.tmpdir(), 'zuzu-js-cli-electron-bin-' ) );
+	const fakeElectron = path.join( tmp, process.platform === 'win32'
+		? 'electron.cmd'
+		: 'electron' );
+	const script = path.join( tmp, 'app.zzs' );
+	fs.writeFileSync( script, 'say("GUI");\n', 'utf8' );
+	if ( process.platform === 'win32' ) {
+		fs.writeFileSync(
+			fakeElectron,
+			'@echo off\r\nnode -e "console.log(JSON.stringify(process.argv.slice(1)))" %*\r\n',
+			'utf8'
+		);
+	}
+	else {
+		fs.writeFileSync(
+			fakeElectron,
+			'#!/usr/bin/env node\nconsole.log(JSON.stringify(process.argv.slice(2)));\n',
+			'utf8'
+		);
+		fs.chmodSync( fakeElectron, 0o755 );
+	}
+	const result = runElectronCliBin(
+		[ '-I', tmp, script, 'arg' ],
+		{ env: { ZUZU_JS_ELECTRON_COMMAND: fakeElectron } }
+	);
+	assert.equal( result.status, 0 );
+	const launched = JSON.parse( result.stdout.trim() );
+	assert.equal( path.basename( launched[0] ), 'zuzu-js-electron' );
+	assert.deepEqual( launched.slice( 1 ), [ '-I', tmp, script, 'arg' ] );
 }
 
 {

@@ -152,6 +152,35 @@ async function _reverseAsync( address ) {
 	}
 }
 
+function _nodeChildOptions() {
+	const options = {
+		encoding: 'utf8',
+	};
+	if ( runtimePolicy.host_name === 'electron' ) {
+		options.env = {
+			...process.env,
+			ELECTRON_RUN_AS_NODE: '1',
+		};
+	}
+	return options;
+}
+
+function _emptyResponseError( child ) {
+	const detail = String( child.stderr || '' ).trim()
+		|| (
+			Number.isInteger( child.status )
+				? `exit ${child.status}`
+				: ''
+		)
+		|| (
+			child.signal
+				? `signal ${child.signal}`
+				: ''
+		)
+		|| 'empty resolver response';
+	return `empty resolver response (${detail})`;
+}
+
 function _syncRun( op, args ) {
 	_requireDns();
 	const source = `
@@ -202,12 +231,25 @@ function _syncRun( op, args ) {
 	`;
 	const payload = JSON.stringify( { op, args } );
 	const child = spawnSync( process.execPath, [ '-e', source, payload ], {
-		encoding: 'utf8',
+		..._nodeChildOptions(),
 	});
 	if ( child.error ) {
 		throw new Error( `DNSException: ${child.error.message}` );
 	}
-	const parsed = JSON.parse( child.stdout || '{"ok":false,"error":"empty resolver response"}' );
+	let parsed;
+	try {
+		parsed = JSON.parse(
+			child.stdout || JSON.stringify( {
+				ok: false,
+				error: _emptyResponseError( child ),
+			} )
+		);
+	}
+	catch ( err ) {
+		throw new Error(
+			`DNSException: invalid resolver response: ${err.message}`
+		);
+	}
 	if ( !parsed.ok ) {
 		throw new Error( `DNSException: ${parsed.error}` );
 	}
