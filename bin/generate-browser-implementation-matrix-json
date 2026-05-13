@@ -6,6 +6,7 @@ const http = require( 'node:http' );
 const path = require( 'node:path' );
 const { spawn } = require( 'node:child_process' );
 const paths = require( '../lib/paths' );
+const { stripPodPreservingLines } = require( '../lib/transpiler-utils' );
 
 const repoRoot = paths.projectRoot;
 const ztestsDirs = [ paths.languageTestsRoot, paths.stdlibTestsRoot ];
@@ -123,7 +124,9 @@ function discoverVirtualFiles() {
 		}
 		for ( const filename of walkZuzuFiles( root ) ) {
 			const rel = path.relative( repoRoot, filename ).replace( /\\/g, '/' );
-			files[`/${rel}`] = fs.readFileSync( filename, 'utf8' );
+			files[`/${rel}`] = stripPodPreservingLines(
+				fs.readFileSync( filename, 'utf8' )
+			);
 		}
 	}
 	return files;
