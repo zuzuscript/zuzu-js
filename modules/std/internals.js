@@ -12,6 +12,7 @@ let nodeFs;
 let nodeFsLoaded = false;
 let runtimePolicy = {
 	load_module: null,
+	builtin_class: null,
 	to_String: null,
 	to_Number: null,
 	to_Boolean: null,
@@ -294,6 +295,47 @@ function class_name( value ) {
 	return value.constructor && value.constructor.name ? value.constructor.name : null;
 }
 
+function classof( value ) {
+	if ( value == null ) {
+		return null;
+	}
+	if (
+		typeof value === 'boolean'
+		|| typeof value === 'number'
+		|| typeof value === 'string'
+	) {
+		return null;
+	}
+	const builtinClass = typeof runtimePolicy.builtin_class === 'function'
+		? runtimePolicy.builtin_class
+		: () => null;
+	if ( Array.isArray( value ) ) {
+		return builtinClass( 'Array' ) || value.constructor || null;
+	}
+	if ( Object.prototype.toString.call( value ) === '[object Set]' ) {
+		return builtinClass( 'Set' ) || value.constructor || null;
+	}
+	if ( value && value.constructor ) {
+		const ctor = value.constructor;
+		const name = ctor.__zuzu_class_name || ctor.name || '';
+		if ( name === 'Object' ) {
+			return builtinClass( 'Dict' ) || ctor;
+		}
+		if ( name === 'ZuzuBag' ) {
+			return builtinClass( 'Bag' ) || ctor;
+		}
+		return ctor;
+	}
+	if ( typeof value === 'function' ) {
+		const source = Function.prototype.toString.call( value );
+		if ( /^\s*class\b/.test( source ) ) {
+			return builtinClass( 'Class' ) || Function;
+		}
+		return builtinClass( 'Function' ) || Function;
+	}
+	return null;
+}
+
 function object_slots( value ) {
 	if ( value == null || typeof value !== 'object' ) {
 		return null;
@@ -495,6 +537,7 @@ const api = {
 	active_task_count: taskRuntime.activeCount,
 	ansi_esc,
 	class_name,
+	classof,
 	clear_task_trace: taskRuntime.clearTrace,
 	getprop,
 	getupperprop,
