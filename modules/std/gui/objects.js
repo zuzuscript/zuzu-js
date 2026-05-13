@@ -816,6 +816,21 @@ class Window extends Widget {
 		this.__zuzu_native_close_allowed = false;
 		this.__zuzu_close_waiters = [];
 		this.__zuzu_content = _getProp( props, 'content', null );
+		if (
+			this.__zuzu_content != null
+			&& (
+				!( this.__zuzu_content instanceof Widget )
+				|| _isMenuKind( this.__zuzu_content )
+			)
+		) {
+			throw new Error( 'GUI_PROP_TYPE: Window content expects a non-menu Widget or null' );
+		}
+		if (
+			this.__zuzu_content != null
+			&& !this.__zuzu_children.includes( this.__zuzu_content )
+		) {
+			this.add_child( this.__zuzu_content );
+		}
 		if ( this.__zuzu_content == null ) {
 			this.__zuzu_content = this.__zuzu_children.find(
 				(child) => !_isMenuKind( child )

@@ -186,7 +186,14 @@ function createFakeElectron() {
 }
 
 {
-	for ( const phase of [ 1, 2, 3, 4, 5 ] ) {
+	for ( const name of [
+		'_phase1',
+		'_phase2',
+		'_phase3',
+		'_phase4',
+		'_phase5',
+		'objects',
+	] ) {
 		const bridge = createFakeBridge();
 		const runtime = createElectronRuntime( {
 			repoRoot,
@@ -194,7 +201,7 @@ function createFakeElectron() {
 		} );
 		const filename = path.join(
 			repoRoot,
-			`stdlib/tests/std/gui/_phase${phase}.zzs`,
+			`stdlib/tests/std/gui/${name}.zzs`,
 		);
 		const result = runtime.runSource(
 			fs.readFileSync( filename, 'utf8' ),
