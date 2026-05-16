@@ -236,7 +236,13 @@ function encodeTimePayload( value, _state ) {
 	if ( typeof epoch !== 'number' || !Number.isFinite( epoch ) ) {
 		throw new Error( 'Time value has invalid internal epoch' );
 	}
-	return [ encodeNumber( epoch ) ];
+	const zone = typeof value.timezone === 'function'
+		? value.timezone().to_String()
+		: value._timezone;
+	if ( zone == null ) {
+		return [ encodeNumber( epoch ) ];
+	}
+	return [ encodeNumber( epoch ), cbor.textString( String( zone ) ) ];
 }
 
 function encodePathPayload( value, _state ) {
@@ -712,12 +718,17 @@ function fillBag( id, payload, placeholders ) {
 }
 
 function fillTime( id, payload, placeholders ) {
-	assertRecordArray( payload, `Time object payload ${id}`, 1 );
+	if ( !Array.isArray( payload ) || ( payload.length !== 1 && payload.length !== 2 ) ) {
+		throw new Error( `Time object payload ${id} must contain epoch and optional timezone` );
+	}
 	const epoch = payload[0];
 	if ( typeof epoch !== 'number' ) {
 		throw new Error( `Time object payload ${id} epoch must be a number` );
 	}
 	placeholders[id]._epoch = epoch;
+	placeholders[id]._timezone = payload.length > 1 && cbor.isTextString( payload[1] )
+		? cbor.textValue( payload[1] )
+		: 'UTC';
 }
 
 function fillPath( id, payload, placeholders ) {
