@@ -1,7 +1,29 @@
 'use strict';
 
 const MONTHS = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
-const MONTH_BY_NAME = new Map( MONTHS.map( ( name, idx ) => [ name.toLowerCase(), idx + 1 ] ) );
+const MONTH_BY_NAME = new Map( [
+	[ 'jan', 1 ], [ 'january', 1 ],
+	[ 'feb', 2 ], [ 'february', 2 ],
+	[ 'mar', 3 ], [ 'march', 3 ],
+	[ 'apr', 4 ], [ 'april', 4 ],
+	[ 'may', 5 ],
+	[ 'jun', 6 ], [ 'june', 6 ],
+	[ 'jul', 7 ], [ 'july', 7 ],
+	[ 'aug', 8 ], [ 'august', 8 ],
+	[ 'sep', 9 ], [ 'sept', 9 ], [ 'september', 9 ],
+	[ 'oct', 10 ], [ 'october', 10 ],
+	[ 'nov', 11 ], [ 'november', 11 ],
+	[ 'dec', 12 ], [ 'december', 12 ],
+] );
+const WEEKDAY_BY_NAME = new Set( [
+	'sun', 'sunday',
+	'mon', 'monday',
+	'tue', 'tues', 'tuesday',
+	'wed', 'weds', 'wednesday',
+	'thu', 'thur', 'thurs', 'thursday',
+	'fri', 'friday',
+	'sat', 'saturday',
+] );
 
 function defineType( object, name ) {
 	Object.defineProperty( object, '__zuzu_type_name', {
@@ -43,6 +65,23 @@ function offsetSeconds( zone ) {
 
 function pad( value, width = 2 ) {
 	return String( value ).padStart( width, '0' );
+}
+
+function stripTrailingPeriod( text ) {
+	return String( text ).replace( /\.+$/u, '' ).toLowerCase();
+}
+
+function isLeapYear( year ) {
+	if ( year % 4 !== 0 ) return false;
+	if ( year % 100 !== 0 ) return true;
+	return year % 400 === 0;
+}
+
+function daysInMonth( year, month ) {
+	if ( [ 1, 3, 5, 7, 8, 10, 12 ].includes( month ) ) return 31;
+	if ( [ 4, 6, 9, 11 ].includes( month ) ) return 30;
+	if ( month === 2 ) return isLeapYear( year ) ? 29 : 28;
+	return 0;
 }
 
 function normaliseParts( parts ) {
@@ -184,12 +223,48 @@ function parseOffset( text ) {
 	if ( text == null || /^(?:z|utc|gmt)$/iu.test( text ) ) {
 		return 0;
 	}
+	if ( /^ut$/iu.test( text ) ) {
+		return 0;
+	}
 	const m = String( text ).match( /^([+-])(\d\d):?(\d\d)$/u );
 	if ( !m ) {
 		return null;
 	}
-	const value = Number( m[2] ) * 3600 + Number( m[3] ) * 60;
+	const hours = Number( m[2] );
+	const minutes = Number( m[3] );
+	if ( hours > 23 || minutes > 59 ) {
+		return null;
+	}
+	const value = hours * 3600 + minutes * 60;
 	return m[1] === '-' ? -value : value;
+}
+
+function parseRfc5322Zone( text ) {
+	const offset = parseOffset( text );
+	if ( offset != null ) {
+		return offset;
+	}
+	const key = String( text ).toUpperCase();
+	const legacy = {
+		EST: -5 * 3600,
+		EDT: -4 * 3600,
+		CST: -6 * 3600,
+		CDT: -5 * 3600,
+		MST: -7 * 3600,
+		MDT: -6 * 3600,
+		PST: -8 * 3600,
+		PDT: -7 * 3600,
+	};
+	if ( Object.prototype.hasOwnProperty.call( legacy, key ) ) {
+		return legacy[key];
+	}
+	if ( /^[A-Z]$/u.test( key ) && key !== 'J' ) {
+		const pos = 'ABCDEFGHIKLMNOPQRSTUVWXYZ'.indexOf( key );
+		if ( pos >= 0 ) {
+			return pos < 12 ? ( pos + 1 ) * 3600 : -( pos - 11 ) * 3600;
+		}
+	}
+	return null;
 }
 
 class TimeZone {
@@ -258,32 +333,72 @@ function parseTimeText( text, defaultZone, requireZone ) {
 		if ( requireZone && !m[7] && defaultZone == null ) {
 			throw new Error( 'Time.parse() requires a timezone' );
 		}
-		const zone = m[7] ? formatOffset( parseOffset( m[7] ), true ) : zoneName( defaultZone );
+		const offset = m[7] ? parseOffset( m[7] ) : null;
+		if ( m[7] && offset == null ) {
+			throw new Error( 'invalid time zone' );
+		}
+		const zone = m[7] ? formatOffset( offset, true ) : zoneName( defaultZone );
+		const year = Number( m[1] );
+		const month = Number( m[2] );
+		const day = Number( m[3] );
+		const hour = Number( m[4] || 0 );
+		const minute = Number( m[5] || 0 );
+		const second = Number( m[6] || 0 );
+		if ( hour > 23 || minute > 59 || second > 59 ) {
+			throw new Error( 'invalid time' );
+		}
+		if ( day < 1 || day > daysInMonth( year, month ) ) {
+			throw new Error( 'invalid date' );
+		}
 		return {
 			epoch: sameWallEpoch( {
-				year: Number( m[1] ),
-				month: Number( m[2] ),
-				day: Number( m[3] ),
-				hour: Number( m[4] || 0 ),
-				minute: Number( m[5] || 0 ),
-				second: Number( m[6] || 0 ),
+				year,
+				month,
+				day,
+				hour,
+				minute,
+				second,
 			}, zone ),
 			zone,
 		};
 	}
-	m = text.match( /^(?:[A-Za-z]{3},\s*)?(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(\d\d):(\d\d)(?::(\d\d))?\s+(Z|[+-]\d\d:?\d\d|UT|UTC|GMT)$/iu );
+	m = text.match( /^(?:([A-Za-z.]+),\s*)?(\d{1,2})\s+([A-Za-z.]+)\s+(\d{2}|\d{4})\s+(\d{1,2}):(\d\d)(?::(\d\d))?\s+([+-]\d\d:?\d\d|[A-Za-z]{1,5})$/iu );
 	if ( m ) {
-		const month = MONTH_BY_NAME.get( m[2].toLowerCase() );
-		if ( !month ) throw new Error( 'Error parsing time' );
-		const zone = formatOffset( parseOffset( m[7] ), true );
+		if ( m[1] && !WEEKDAY_BY_NAME.has( stripTrailingPeriod( m[1] ) ) ) {
+			throw new Error( 'invalid weekday' );
+		}
+		const month = MONTH_BY_NAME.get( stripTrailingPeriod( m[3] ) );
+		if ( !month ) throw new Error( 'invalid month' );
+		let year = Number( m[4] );
+		if ( String( m[4] ).length === 2 ) {
+			year += year >= 50 ? 1900 : 2000;
+		}
+		if ( year < 1 ) {
+			throw new Error( 'invalid year' );
+		}
+		const day = Number( m[2] );
+		const hour = Number( m[5] );
+		const minute = Number( m[6] );
+		const second = Number( m[7] || 0 );
+		if ( hour > 23 || minute > 59 || second > 59 ) {
+			throw new Error( 'invalid time' );
+		}
+		if ( day < 1 || day > daysInMonth( year, month ) ) {
+			throw new Error( 'invalid date' );
+		}
+		const offset = parseRfc5322Zone( m[8] );
+		if ( offset == null ) {
+			throw new Error( 'invalid time zone' );
+		}
+		const zone = formatOffset( offset, true );
 		return {
 			epoch: sameWallEpoch( {
-				year: Number( m[3] ),
+				year,
 				month,
-				day: Number( m[1] ),
-				hour: Number( m[4] ),
-				minute: Number( m[5] ),
-				second: Number( m[6] || 0 ),
+				day,
+				hour,
+				minute,
+				second,
 			}, zone ),
 			zone,
 		};
