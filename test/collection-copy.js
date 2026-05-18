@@ -77,9 +77,29 @@ function run( src ) {
 			"PairList copy is shallow",
 		);
 
+		class Box {}
+
+		let duplicate_owner := new Box();
+		let duplicate_set := [].to_Set();
+		let duplicate_saved := duplicate_owner but weak;
+		duplicate_set.push( duplicate_owner );
+		duplicate_set.push( duplicate_owner );
+		duplicate_owner := null;
+		ok( duplicate_saved != null, "duplicate Set push keeps one strong value" );
+		duplicate_set.remove( duplicate_saved );
+		ok( duplicate_saved == null, "Set remove releases duplicate-pushed value" );
+
+		let temp_owner := new Box();
+		let temp_set := [ temp_owner ].to_Set();
+		let temp_saved := temp_owner but weak;
+		temp_owner := null;
+		ok( temp_saved != null, "temporary array to_Set value stays live in Set" );
+		temp_set.remove( temp_saved );
+		ok( temp_saved == null, "temporary array to_Set does not leak value" );
+
 		done_testing();
 	` );
-	for ( let i = 1; i <= 21; i++ ) {
+	for ( let i = 1; i <= 25; i++ ) {
 		assert.match( out, new RegExp( `ok\\s+${i}\\b` ) );
 	}
 }

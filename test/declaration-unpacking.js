@@ -143,6 +143,84 @@ const result = runtime.runSource( `
 	owner := null;
 	ok( alive and parent == null, "per-entry weak storage is honoured" );
 
+	let released_owner := new Box();
+	let released_source := { owner: released_owner };
+	let { owner: released_saved but weak } := released_source;
+	released_owner := null;
+	ok( released_saved != null, "Dict source keeps weak unpacked value live" );
+	released_source := null;
+	ok( released_saved == null, "Dict source release drops weak unpacked value" );
+
+	let alias_owner := new Box();
+	let alias_source := { owner: alias_owner };
+	let alias_source_copy := alias_source;
+	let { owner: alias_saved but weak } := alias_source;
+	alias_owner := null;
+	alias_source := null;
+	ok( alias_saved != null, "Dict source alias keeps weak unpacked value live" );
+	alias_source_copy := null;
+	ok( alias_saved == null, "Dict source final release drops weak unpacked value" );
+
+	let pair_owner := new Box();
+	let pair_source := {{ owner: pair_owner }};
+	let { owner: pair_saved but weak } := pair_source;
+	pair_owner := null;
+	ok( pair_saved != null, "PairList source keeps weak unpacked value live" );
+	pair_source := null;
+	ok( pair_saved == null, "PairList source release drops weak unpacked value" );
+
+	let copied_owner := new Box();
+	let copied_source := { owner: copied_owner };
+	let copied_dict := copied_source.copy();
+	let { owner: copied_saved but weak } := copied_dict;
+	copied_owner := null;
+	copied_source := null;
+	ok( copied_saved != null, "copied Dict keeps weak unpacked value live" );
+	copied_dict := null;
+	ok( copied_saved == null, "copied Dict release drops weak unpacked value" );
+
+	let constructed_pair_owner := new Box();
+	let constructed_pair_arg := [ "owner", constructed_pair_owner ];
+	let constructed_pairs := new PairList( constructed_pair_arg );
+	let { owner: constructed_pair_saved but weak } := constructed_pairs;
+	constructed_pair_arg := null;
+	constructed_pair_owner := null;
+	ok(
+		constructed_pair_saved != null,
+		"constructed PairList keeps weak unpacked value live",
+	);
+	constructed_pairs := null;
+	ok(
+		constructed_pair_saved == null,
+		"constructed PairList release drops weak unpacked value",
+	);
+
+	let removal_owner := new Box();
+	let removal_source := { owner: removal_owner };
+	let removal_copy := removal_source.copy();
+	let removal_saved := removal_owner but weak;
+	removal_copy.remove( "owner" );
+	removal_owner := null;
+	ok(
+		removal_saved != null,
+		"copy removal does not release original Dict value",
+	);
+	removal_source := null;
+	ok(
+		removal_saved == null,
+		"original Dict release drops value after copy removal",
+	);
+
+	let weak_set_owner := new Box();
+	let weak_set_dict := { owner: weak_set_owner };
+	let weak_set_saved := weak_set_owner but weak;
+	weak_set_dict.set_weak( "owner", new Box() );
+	weak_set_owner := null;
+	ok(
+		weak_set_saved == null,
+		"Dict weak write releases previous strong retained value",
+	);
+
 	const { fixed } := { fixed: 42 };
 	is( fixed, 42, "const unpacking binds values" );
 
@@ -166,5 +244,5 @@ const result = runtime.runSource( `
 `, { filename: '/tmp/declaration-unpacking.zzs' } );
 
 assert.equal( result.status, 0, result.stderr );
-assert.match( result.stdout, /1\.\.16/u );
+assert.match( result.stdout, /1\.\.29/u );
 assert.doesNotMatch( result.stdout, /^not ok/mu );
