@@ -16,7 +16,7 @@
   },
   "scripts": {
     "electron:demo": "electron bin/zuzu-js-electron docs/examples/09_gui_dialogue_demo.zzs",
-    "test": "node test/cli.js && node test/argument-spread.js && node test/collection-copy.js && node test/std-marshal-cbor.js && node test/std-marshal-data-graph.js && node test/std-marshal-user-object.js && node test/std-marshal-code-table.js && node test/async-parity.js && node test/browser-stdlib-generator.js && node test/browser-gui.js && node test/electron-gui.js && node test/electron-renderer.js && node test/electron-packaging.js",
+    "test": "node test/cli.js && node test/argument-spread.js && node test/default-operator.js && node test/collection-copy.js && node test/std-marshal-cbor.js && node test/std-marshal-data-graph.js && node test/std-marshal-user-object.js && node test/std-marshal-code-table.js && node test/async-parity.js && node test/browser-stdlib-generator.js && node test/browser-gui.js && node test/electron-gui.js && node test/electron-renderer.js && node test/electron-packaging.js",
     "test:electron": "node test/electron-gui.js && node test/electron-renderer.js && node test/electron-packaging.js"
   },
   "keywords": [],
