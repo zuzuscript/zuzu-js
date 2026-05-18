@@ -35,6 +35,16 @@ function runCommand( command, source ) {
 	return result.stdout.trimEnd();
 }
 
+function runZuzuJsCommand( source ) {
+	const result = spawnSync(
+		process.execPath,
+		[ 'bin/zuzu-js', '-Istdlib/test-modules', '-e', source ],
+		{ cwd: repoRoot, encoding: 'utf8' }
+	);
+	assert.equal( result.status, 0, result.stderr || result.stdout );
+	return result.stdout.trimEnd();
+}
+
 function fixture( name ) {
 	return fs.readFileSync( path.join( fixtureDir, `${name}.b64` ), 'utf8' ).trim();
 }
@@ -174,6 +184,48 @@ for ( const command of commands ) {
 		),
 		'JsBox\nAda:box\nBea:box'
 	);
+}
+
+{
+	const blob = runZuzuJsCommand( `
+		from std/marshal import dump;
+		from std/string/base64 import encode;
+		let key := "chosen";
+		function unpack_computed_same_name () {
+			let { (key): key } := { chosen: 9, wrong: 4 };
+			return key;
+		}
+		say( encode( dump(unpack_computed_same_name) ) );
+	` );
+	const output = runZuzuJsCommand( `
+		from std/marshal import load;
+		from std/string/base64 import decode;
+		let key := "wrong";
+		let f := load( decode("${blob}") );
+		say( f() );
+	` );
+	assert.equal( output, '9' );
+}
+
+{
+	const blob = runZuzuJsCommand( `
+		from std/marshal import dump;
+		from std/string/base64 import encode;
+		let fallback := 7;
+		function unpack_default_same_name () {
+			let { fallback := fallback } := {};
+			return fallback;
+		}
+		say( encode( dump(unpack_default_same_name) ) );
+	` );
+	const output = runZuzuJsCommand( `
+		from std/marshal import load;
+		from std/string/base64 import decode;
+		let fallback := 8;
+		let f := load( decode("${blob}") );
+		say( f() );
+	` );
+	assert.equal( output, '7' );
 }
 
 console.log( 'std/marshal code table tests passed' );
