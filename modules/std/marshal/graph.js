@@ -6,8 +6,10 @@ const {
 	ZuzuBag,
 	Pair,
 	PairList,
+	isPairListLike,
 	isWeakCell,
 	makeWeakValue,
+	retainCollectionValue,
 	retainValue,
 	resolveWeakValue,
 } = require( '../../../lib/runtime-helpers' );
@@ -142,7 +144,7 @@ function encodeValue( value, state ) {
 	if ( Array.isArray( value ) ) {
 		return encodeObjectTableValue( value, KIND_ARRAY, state, encodeArrayPayload );
 	}
-	if ( value instanceof PairList ) {
+	if ( isPairListLike( value ) ) {
 		return encodeObjectTableValue(
 			value,
 			KIND_PAIRLIST,
@@ -646,7 +648,7 @@ function fillPair( id, payload, placeholders ) {
 	}
 	placeholders[id].pair = [
 		cbor.textValue( key ),
-		storeLoadedValue( decodeValue( value, placeholders, {
+		storeStrongLoadedValue( decodeValue( value, placeholders, {
 			context: `Pair object payload ${id} value`,
 		} ) ),
 	];
@@ -659,11 +661,14 @@ function fillArray( id, payload, placeholders ) {
 	placeholders[id].splice(
 		0,
 		placeholders[id].length,
-		...payload.map( (item) => storeLoadedValue( decodeValue(
-			item,
-			placeholders,
-			{ context: `Array object payload ${id} item` }
-		) ) )
+		...payload.map( (item) => storeCollectionLoadedValue(
+			placeholders[id],
+			decodeValue(
+				item,
+				placeholders,
+				{ context: `Array object payload ${id} item` }
+			)
+		) )
 	);
 }
 
@@ -681,7 +686,7 @@ function fillDict( id, payload, placeholders ) {
 		if ( Object.prototype.hasOwnProperty.call( target, key ) ) {
 			throw new Error( `Dict object payload ${id} contains duplicate key '${key}'` );
 		}
-		target[key] = storeLoadedValue(value);
+		target[key] = storeCollectionLoadedValue( target, value );
 	}
 }
 
@@ -695,7 +700,7 @@ function fillPairList( id, payload, placeholders ) {
 			pair,
 			placeholders
 		);
-		return [ key, storeLoadedValue(value) ];
+		return [ key, storeCollectionLoadedValue( placeholders[id], value ) ];
 	} );
 }
 
@@ -705,7 +710,7 @@ function fillSet( id, payload, placeholders ) {
 		payload,
 		placeholders
 	) ) {
-		placeholders[id].add( storeLoadedValue(item) );
+		placeholders[id].add( storeCollectionLoadedValue( placeholders[id], item ) );
 	}
 }
 
@@ -714,7 +719,7 @@ function fillBag( id, payload, placeholders ) {
 		`Bag object payload ${id}`,
 		payload,
 		placeholders
-	).map( storeLoadedValue );
+	).map( (item) => storeCollectionLoadedValue( placeholders[id], item ) );
 }
 
 function fillTime( id, payload, placeholders ) {
@@ -848,7 +853,7 @@ function fillObject( id, payload, placeholders ) {
 			throw new Error( `Object payload ${id} contains duplicate slot '${name}'` );
 		}
 		seen.add( name );
-		object[name] = storeLoadedValue( decodeValue( encodedValue, placeholders, {
+		object[name] = storeStrongLoadedValue( decodeValue( encodedValue, placeholders, {
 			context: `Object payload ${id} slot '${name}'`,
 		} ) );
 	}
@@ -935,8 +940,12 @@ function decodeValue( value, placeholders, opts = {} ) {
 	throw new Error( 'Envelope root is not a scalar or supported reference' );
 }
 
-function storeLoadedValue( value ) {
+function storeStrongLoadedValue( value ) {
 	return isWeakCell( value ) ? value : retainValue( value );
+}
+
+function storeCollectionLoadedValue( owner, value ) {
+	return isWeakCell( value ) ? value : retainCollectionValue( owner, value );
 }
 
 function validateWeakStorageRecord( record, placeholders, context ) {
@@ -1000,7 +1009,7 @@ function isPlainDict( value ) {
 	if ( value == null || typeof value !== 'object' ) {
 		return false;
 	}
-	if ( value instanceof ZuzuBinary || value instanceof Pair || value instanceof PairList ) {
+	if ( value instanceof ZuzuBinary || value instanceof Pair || isPairListLike( value ) ) {
 		return false;
 	}
 	if ( value instanceof Set || value instanceof ZuzuBag || Array.isArray( value ) ) {
@@ -1440,7 +1449,7 @@ function buildMarshalClass(
 					let value = field.defaultSource
 						? evalSimpleExpression( field.defaultSource, this, env )
 						: null;
-					if ( initial instanceof PairList ) {
+					if ( isPairListLike( initial ) ) {
 						value = initial.get( field.name, value );
 					}
 					else if (
@@ -1550,7 +1559,7 @@ function typeMatches( value, expected ) {
 		return isPlainDict( value );
 	}
 	if ( expected === 'PairList' ) {
-		return value instanceof PairList;
+		return isPairListLike( value );
 	}
 	if ( expected === 'Set' ) {
 		return value instanceof Set;
