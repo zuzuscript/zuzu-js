@@ -74,6 +74,11 @@ assert.throws(
 	/Wildcard import '\*' cannot be combined with postfix if\/unless/,
 );
 
+assert.throws(
+	() => parse( tokenize( 'let f := fn ^^ -> ^^;' ) ),
+	/'\^\^' is reserved for the chain placeholder/,
+);
+
 {
 	const ast = parse( tokenize( `
 		let owner := null;
