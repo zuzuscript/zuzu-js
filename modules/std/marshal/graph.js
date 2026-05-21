@@ -1275,6 +1275,7 @@ function buildClassFromSource( bindingName, source, env = {} ) {
 	const spec = parseClassSource( source, env );
 	return buildMarshalClass(
 		bindingName,
+		spec.baseName ? env[spec.baseName] : null,
 		spec.fields,
 		spec.methods,
 		spec.statics,
@@ -1305,10 +1306,18 @@ function buildTraitFromSource( bindingName, source, env = {} ) {
 
 function parseClassSource( source, env = {} ) {
 	return {
+		baseName: parseClassBaseName( source ),
 		fields: parseClassFields( source ),
 		traitNames: parseClassTraitNames( source ),
 		...parseMethods( source, env ),
 	};
+}
+
+function parseClassBaseName( source ) {
+	const match = String( source || '' ).match(
+		/\bclass\s+[A-Za-z_][A-Za-z0-9_]*\s+extends\s+([A-Za-z_][A-Za-z0-9_]*)/u
+	);
+	return match ? match[1] : null;
 }
 
 function parseClassFields( source ) {
@@ -1351,7 +1360,7 @@ function parseClassFields( source ) {
 
 function parseClassTraitNames( source ) {
 	const match = String( source || '' ).match(
-		/\bclass\s+[A-Za-z_][A-Za-z0-9_]*(?:\s+extends\s+[A-Za-z_][A-Za-z0-9_]*)?\s+with\s+([^{]+)/u
+		/\bclass\s+[A-Za-z_][A-Za-z0-9_]*(?:\s+extends\s+[A-Za-z_][A-Za-z0-9_]*)?\s+(?:with|but)\s+([^{;]+)/u
 	);
 	if ( !match ) {
 		return [];
@@ -1435,6 +1444,7 @@ function normalizeSimpleExpression( source ) {
 
 function buildMarshalClass(
 	name,
+	base = null,
 	fields,
 	methods = {},
 	statics = {},
@@ -1442,9 +1452,11 @@ function buildMarshalClass(
 	env = {},
 	source = ''
 ) {
+	const parent = typeof base === 'function' ? base : Object;
 	const ctor = {
-		[name]: class {
+		[name]: class extends parent {
 			constructor( initial = {} ) {
+				super( initial );
 				for ( const field of fields ) {
 					let value = field.defaultSource
 						? evalSimpleExpression( field.defaultSource, this, env )
