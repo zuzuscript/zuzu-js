@@ -62,6 +62,15 @@ function runElectronCliBin( args, options = {} ) {
 }
 
 {
+	const result = runCli( [
+		'-e',
+		'say( ⌊let x := (3 + 0.9) * 2⌋ ); say( x ); say( ⌈let y := (3 + 0.9) * 2⌉ ); say( y ); say( (let z := 4) + z );',
+	] );
+	assert.equal( result.status, 0 );
+	assert.equal( result.stdout, '7\n7.8\n8\n7.8\n8\n' );
+}
+
+{
 	const result = runCli( [ '--transpiler=new-only', '-e', 'say( "STRICT" );' ] );
 	assert.equal( result.status, 0 );
 	assert.equal( result.stdout, 'STRICT\n' );
