@@ -64,6 +64,36 @@ function runElectronCliBin( args, options = {} ) {
 {
 	const result = runCli( [
 		'-e',
+		[
+			'try {',
+			'	throw new Exception( message: "boom" );',
+			'}',
+			'catch ( Exception e ) {',
+			'	say( e.message() );',
+			'	say( e.to_String() );',
+			'	say( e can message );',
+			'}',
+		].join( '\n' ),
+	] );
+	assert.equal( result.status, 0 );
+	assert.equal( result.stdout, 'boom\nException: boom\n1\n' );
+}
+
+{
+	const result = runCli( [ '-e', 'let e := new Exception( message: "boom" ); e.file();' ] );
+	assert.notEqual( result.status, 0 );
+	assert.match( result.stderr, /file is not a function/u );
+}
+
+{
+	const result = runCli( [ '-e', 'null.missing();' ] );
+	assert.notEqual( result.status, 0 );
+	assert.match( result.stderr, /Cannot call member missing of null/u );
+}
+
+{
+	const result = runCli( [
+		'-e',
 		'say( ⌊let x := (3 + 0.9) * 2⌋ ); say( x ); say( ⌈let y := (3 + 0.9) * 2⌉ ); say( y ); say( (let z := 4) + z );',
 	] );
 	assert.equal( result.status, 0 );
