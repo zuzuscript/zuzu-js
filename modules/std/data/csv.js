@@ -1,6 +1,10 @@
 'use strict';
 
 const { PairList } = require( '../../../lib/collections' );
+const { BinaryString } = require( '../../../lib/runtime-helpers' );
+
+const utf8Decoder = new TextDecoder( 'utf-8', { fatal: true } );
+const utf8Encoder = new TextEncoder();
 
 let runtimePolicy = {
 	deny_fs: false,
@@ -928,9 +932,16 @@ class CSV {
 	sniff( source ) {
 		if ( isPath( source ) ) {
 			assertCapability( 'fs', 'CSV.sniff is denied by runtime policy' );
-			return sniffText( source.slurp_utf8(), this.config );
+			return this.sniff_binarystring( source.slurp() );
 		}
 		return sniffText( source, this.config );
+	}
+
+	sniff_binarystring( source ) {
+		if ( !( source instanceof BinaryString ) ) {
+			throw new Error( 'TypeException: CSV.sniff_binarystring expects BinaryString' );
+		}
+		return sniffText( utf8Decoder.decode( source.bytes ), this.config );
 	}
 
 	transpose( rows ) {
@@ -959,6 +970,13 @@ class CSV {
 			throw new Error( report.errors[0].message );
 		}
 		return report.rows;
+	}
+
+	decode_binarystring( raw ) {
+		if ( !( raw instanceof BinaryString ) ) {
+			throw new Error( 'TypeException: CSV.decode_binarystring expects BinaryString' );
+		}
+		return this.decode( utf8Decoder.decode( raw.bytes ) );
 	}
 
 	decode_report( text ) {
@@ -1090,6 +1108,15 @@ class CSV {
 		return { rows, errors };
 	}
 
+	decode_report_binarystring( raw ) {
+		if ( !( raw instanceof BinaryString ) ) {
+			throw new Error(
+				'TypeException: CSV.decode_report_binarystring expects BinaryString'
+			);
+		}
+		return this.decode_report( utf8Decoder.decode( raw.bytes ) );
+	}
+
 	encode( rows ) {
 		const input = Array.isArray( rows ) ? rows : [];
 		const columns = outputColumnsFromRows( input, this.config );
@@ -1107,10 +1134,18 @@ class CSV {
 		return lines.join( String( this.config.eol ?? '\n' ) ) + ( lines.length > 0 ? String( this.config.eol ?? '\n' ) : '' );
 	}
 
+	encode_binarystring( rows ) {
+		return new BinaryString( utf8Encoder.encode( this.encode( rows ) ) );
+	}
+
 	encode_row( row ) {
 		const fields = formatOutputRow( row, null );
 		return fields.map( (value) => encodeCell( value, this.config ) ).join( String( this.config.sep_char ?? ',' ) )
 			+ String( this.config.eol ?? '\n' );
+	}
+
+	encode_row_binarystring( row ) {
+		return new BinaryString( utf8Encoder.encode( this.encode_row( row ) ) );
 	}
 
 	load( pathValue ) {
@@ -1118,7 +1153,7 @@ class CSV {
 			throw new Error( 'TypeException: CSV.load expects Path as first argument' );
 		}
 		assertCapability( 'fs', 'CSV.load is denied by runtime policy' );
-		return this.decode( pathValue.slurp_utf8() );
+		return this.decode_binarystring( pathValue.slurp() );
 	}
 
 	load_report( pathValue ) {
@@ -1126,7 +1161,7 @@ class CSV {
 			throw new Error( 'TypeException: CSV.load_report expects Path as first argument' );
 		}
 		assertCapability( 'fs', 'CSV.load_report is denied by runtime policy' );
-		return this.decode_report( pathValue.slurp_utf8() );
+		return this.decode_report_binarystring( pathValue.slurp() );
 	}
 
 	dump( pathValue, rows ) {
@@ -1134,7 +1169,7 @@ class CSV {
 			throw new Error( 'TypeException: CSV.dump expects Path as first argument' );
 		}
 		assertCapability( 'fs', 'CSV.dump is denied by runtime policy' );
-		pathValue.spew_utf8( this.encode( rows ) );
+		pathValue.spew( this.encode_binarystring( rows ) );
 		return pathValue;
 	}
 

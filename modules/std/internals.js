@@ -17,6 +17,7 @@ let runtimePolicy = {
 	to_Number: null,
 	to_Boolean: null,
 	to_Regexp: null,
+	to_Regexp_with_flags: null,
 };
 
 function setRuntimePolicy( policy = {} ) {
@@ -477,6 +478,10 @@ function to_Regexp( value ) {
 	return requirePolicyFunction( 'to_Regexp' )( value );
 }
 
+function to_Regexp_with_flags( value, flags ) {
+	return requirePolicyFunction( 'to_Regexp_with_flags' )( value, flags );
+}
+
 function validateKey( key ) {
 	if ( typeof key !== 'string' ) {
 		throw new Error( 'getprop|setprop key must be String' );
@@ -552,6 +557,7 @@ const api = {
 	to_Boolean,
 	to_Number,
 	to_Regexp,
+	to_Regexp_with_flags,
 	to_String,
 };
 

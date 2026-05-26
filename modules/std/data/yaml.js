@@ -2,6 +2,10 @@
 
 const yaml = require( 'js-yaml' );
 const { Pair, PairList, ZuzuBag } = require( '../../../lib/collections' );
+const { BinaryString } = require( '../../../lib/runtime-helpers' );
+
+const utf8Decoder = new TextDecoder( 'utf-8', { fatal: true } );
+const utf8Encoder = new TextEncoder();
 
 function isPlainObject( value ) {
 	return value != null
@@ -16,7 +20,8 @@ function isPath( value ) {
 	return value
 		&& value.constructor
 		&& value.constructor.name === 'Path'
-		&& typeof value.spew_utf8 === 'function';
+		&& typeof value.slurp === 'function'
+		&& typeof value.spew === 'function';
 }
 
 function normalizeValue( value ) {
@@ -214,16 +219,27 @@ class YAML {
 		return this.pretty ? text : text.replace( /\n$/u, '' );
 	}
 
+	encode_binarystring( value ) {
+		return new BinaryString( utf8Encoder.encode( this.encode( value ) ) );
+	}
+
 	decode( text ) {
 		const value = yaml.load( String( text ) );
 		return value === undefined ? null : decorateValue( value );
+	}
+
+	decode_binarystring( raw ) {
+		if ( !( raw instanceof BinaryString ) ) {
+			throw new Error( 'TypeException: YAML.decode_binarystring expects BinaryString' );
+		}
+		return this.decode( utf8Decoder.decode( raw.bytes ) );
 	}
 
 	dump( pathValue, value ) {
 		if ( !isPath( pathValue ) ) {
 			throw new Error( 'TypeException: YAML.dump expects Path as first argument' );
 		}
-		pathValue.spew_utf8( this.encode( value ) );
+		pathValue.spew( this.encode_binarystring( value ) );
 		return pathValue;
 	}
 
@@ -231,7 +247,7 @@ class YAML {
 		if ( !isPath( pathValue ) ) {
 			throw new Error( 'TypeException: YAML.load expects Path as first argument' );
 		}
-		return this.decode( pathValue.slurp_utf8() );
+		return this.decode_binarystring( pathValue.slurp() );
 	}
 }
 

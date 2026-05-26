@@ -1,7 +1,9 @@
 'use strict';
 
 const { Pair, PairList, ZuzuBag } = require( '../../../lib/collections' );
+const { BinaryString } = require( '../../../lib/runtime-helpers' );
 const utf8Decoder = new TextDecoder( 'utf-8', { fatal: true } );
+const utf8Encoder = new TextEncoder();
 
 function _isPlainObject( value ) {
 	return value != null
@@ -420,7 +422,12 @@ function _parseJson( text, pairlists ) {
 				}
 				const out = {};
 				for ( const [ entryKey, entryValue ] of entries ) {
-					out[entryKey] = entryValue;
+					Object.defineProperty( out, entryKey, {
+						value: entryValue,
+						enumerable: true,
+						configurable: true,
+						writable: true,
+					} );
 				}
 				return _decorateDict( out );
 			}
@@ -466,7 +473,7 @@ function _parseJson( text, pairlists ) {
 }
 
 function _asPath( value, methodName ) {
-	if ( value && typeof value.slurp_utf8 === 'function' && typeof value.spew_utf8 === 'function' ) {
+	if ( value && typeof value.slurp === 'function' && typeof value.spew === 'function' ) {
 		return value;
 	}
 	throw new Error( `TypeException: ${methodName} expects Path as first argument` );
@@ -492,18 +499,29 @@ class JSONCodec {
 		} );
 	}
 
+	encode_binarystring( value ) {
+		return new BinaryString( utf8Encoder.encode( this.encode( value ) ) );
+	}
+
 	decode( text ) {
 		return _parseJson( text, this.pairlists );
 	}
 
+	decode_binarystring( raw ) {
+		if ( !( raw instanceof BinaryString ) ) {
+			throw new Error( 'TypeException: JSON.decode_binarystring expects BinaryString' );
+		}
+		return _parseJson( raw, this.pairlists );
+	}
+
 	load( pathObj ) {
 		const pathValue = _asPath( pathObj, 'JSON.load' );
-		return this.decode( pathValue.slurp_utf8() );
+		return this.decode_binarystring( pathValue.slurp() );
 	}
 
 	dump( pathObj, value ) {
 		const pathValue = _asPath( pathObj, 'JSON.dump' );
-		pathValue.spew_utf8( this.encode( value ) );
+		pathValue.spew( this.encode_binarystring( value ) );
 		return pathObj;
 	}
 }
