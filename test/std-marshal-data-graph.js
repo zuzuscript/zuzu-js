@@ -102,8 +102,8 @@ assert.equal( marshal.load( binaryFromBase64( golden( 'scalar-null' ) ) ), null 
 	assert.ok( loaded[2] instanceof ZuzuBag );
 	assert.equal( loaded[2].count( 1 ), 2 );
 	assert.ok( loaded[3] instanceof Pair );
-	assert.equal( loaded[3].key, '7' );
-	assert.equal( loaded[3].value[0], 'value' );
+	assert.equal( loaded[3].key(), '7' );
+	assert.equal( loaded[3].value()[0], 'value' );
 }
 
 {

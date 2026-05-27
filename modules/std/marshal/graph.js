@@ -228,8 +228,8 @@ function encodeBagPayload( value, state ) {
 
 function encodePairPayload( value, state ) {
 	return [
-		cbor.textString( value.key ),
-		encodeValue( value.value, state ),
+		cbor.textString( value.key() ),
+		encodeValue( value.value(), state ),
 	];
 }
 
