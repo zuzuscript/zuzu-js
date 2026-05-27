@@ -124,6 +124,32 @@ function pattern_to_regexp( pattern, caseInsensitive = false ) {
 	return new RegExp( String( pattern ?? '' ), caseInsensitive ? 'i' : '' );
 }
 
+const REGEXP_META_CHARS = new Set( [
+	'\\',
+	'/',
+	'^',
+	'$',
+	'.',
+	'|',
+	'?',
+	'*',
+	'+',
+	'(',
+	')',
+	'[',
+	']',
+	'{',
+	'}',
+	'"',
+	"'",
+] );
+
+function quotemeta( text ) {
+	return [ ...toStringValue( text ) ]
+		.map( (ch) => REGEXP_META_CHARS.has( ch ) ? `\\${ch}` : ch )
+		.join( '' );
+}
+
 function normalizePattern( pattern, flags = '' ) {
 	if ( isRegexLike( pattern ) ) {
 		const mergedFlags = [ ...( pattern.flags || '' ), ...( flags || '' ) ];
@@ -259,6 +285,7 @@ module.exports = {
 	ord,
 	pad,
 	pattern_to_regexp,
+	quotemeta,
 	rindex,
 	replace,
 	search,
