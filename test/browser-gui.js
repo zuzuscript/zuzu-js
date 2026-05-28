@@ -850,6 +850,9 @@ async function main() {
 	assert.equal( win.frame.attributes['aria-label'], 'Browser window' );
 	assert.equal( win.frame.style.width, '360px' );
 	assert.equal( win.frame.style.height, '220px' );
+	const mainNode = findElement( win.frame, (node) => node.tagName === 'MAIN' );
+	assert.equal( mainNode.style.width || '', '' );
+	assert.equal( mainNode.style.height || '', '' );
 	assert.ok( findElement( win.frame, (node) => node.tagName === 'NAV' ) );
 	assert.ok( findElement( win.frame, (node) => node.textContent === 'Help' ) );
 	assert.ok( findElement( win.frame, (node) => node.textContent === 'About' ) );
