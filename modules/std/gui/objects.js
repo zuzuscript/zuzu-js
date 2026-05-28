@@ -240,7 +240,7 @@ class Event {
 class Widget {
 	constructor( props = {} ) {
 		this.__zuzu_gui_id = `w${nextWidgetId++}`;
-		this.__zuzu_gui_type = this.constructor.name;
+		this.__zuzu_gui_type = this.__zuzu_gui_type_name || this.constructor.name;
 		this.__zuzu_props = props || {};
 		this.__zuzu_parent = _weak( null );
 		this.__zuzu_event_parent = null;
@@ -1428,6 +1428,11 @@ function _nativeDialogue( name ) {
 }
 
 function _tagGuiType( klass, names ) {
+	Object.defineProperty( klass.prototype, '__zuzu_gui_type_name', {
+		value: names[0],
+		enumerable: false,
+		configurable: false,
+	} );
 	Object.defineProperty( klass.prototype, '__zuzu_type_names', {
 		value: names,
 		enumerable: false,

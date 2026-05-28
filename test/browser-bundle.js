@@ -136,6 +136,19 @@ assert.equal( typeof context.zuzu_run, 'function' );
 assert.equal( typeof context.zuzu_compile, 'function' );
 assert.equal( context.zuzu_eval( '5 mod 2' ), 1 );
 
+{
+	const runtime = context.ZuzuBrowser.createBrowserRuntime(
+		context.__ZUZU_BROWSER_DEFAULT_RUNTIME_OPTIONS__
+	).runtime;
+	const { Button } = runtime.loadModule( 'std/gui/objects', '/app/main.zzs' );
+	class MinifiedButton extends Button {}
+	assert.equal(
+		new MinifiedButton( { text: 'OK' } ).__zuzu_gui_snapshot().type,
+		'Button',
+		'GUI snapshot types must survive class-name minification',
+	);
+}
+
 const requiredModules = [
 	[
 		'std/string',
