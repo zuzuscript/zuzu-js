@@ -166,6 +166,29 @@ const requiredModules = [
 		'{"a":1,"b":2}',
 	],
 	[
+		'std/path/jsonpointer',
+		`
+			from std/path/jsonpointer import JSONPointer;
+			let pointer := new JSONPointer( path: "/foo/0" );
+			say( pointer.first( { foo: [ "bar" ] } ) );
+		`,
+		'bar',
+	],
+	[
+		'std/data/json/schema',
+		`
+			from std/data/json/schema import FormatError, valid, validate;
+			say( valid( { type: "object" }, { name: "Ada" } ) );
+			let result := validate(
+				{ type: "string", format: "email" },
+				"not email",
+				{ format_assert: true },
+			);
+			say( result.errors()[0] instanceof FormatError );
+		`,
+		'true\n1',
+	],
+	[
 		'std/data/xml',
 		`
 			from std/data/xml import XML;
@@ -457,6 +480,24 @@ const requiredModules = [
 			say( ui.find_by_id( "ok" ).text() );
 		`,
 		'false\nFunction\nBundle XML\nOK',
+	],
+	[
+		'std/template/z',
+		`
+			from std/template/z import ZTemplate;
+			let tmpl := new ZTemplate( string: "Hello {{ name }}!" );
+			say( tmpl.process( { name: "Ada" } ) );
+		`,
+		'Hello Ada!',
+	],
+	[
+		'std/template/zz',
+		`
+			from std/template/zz import ZZTemplate;
+			let tmpl := new ZZTemplate( string: "{{ zero ?: fallback }}" );
+			say( tmpl.process( { zero: 0, fallback: "yes" } ) );
+		`,
+		'yes',
 	],
 	[
 		'std/dump',

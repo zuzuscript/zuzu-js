@@ -29,6 +29,7 @@ async function main() {
 		},
 	} );
 	assert.ok( browser.runtime instanceof ZuzuScript );
+	assert.deepEqual( browser.runtime.getModuleSearchRoots(), [ '/modules' ] );
 
 	assert.equal( browser.zuzu_eval( '6 * 7' ), 42 );
 	const result = browser.zuzu_run( 'say( 6 * 7 );' );

@@ -133,9 +133,19 @@ function reportModules( run ) {
 		'std/gui/dialogue',
 		'std/uuid',
 		'std/dump',
+		'std/data/cbor',
 		'std/data/kdl',
 		'std/data/kdl/json',
 		'std/data/kdl/xml',
+		'std/path/jsonpointer',
+		'std/data/json/schema',
+		'std/data/json/schema/core',
+		'std/data/json/schema/format',
+		'std/data/json/schema/model',
+		'std/data/json/schema/output',
+		'std/data/json/schema/relative_pointer',
+		'std/data/json/schema/validation',
+		'std/mail',
 		'std/data/xml/escape',
 		'std/path/simple',
 		'std/path/z',
@@ -149,6 +159,8 @@ function reportModules( run ) {
 		'std/path/zz',
 		'std/path/zz/functions',
 		'std/path/zz/operators',
+		'std/template/z',
+		'std/template/zz',
 	] );
 	const stdlib = loadStdlib( run );
 	assert.ok( stdlib.jsModules['/modules/std/string.js'] );
@@ -156,7 +168,12 @@ function reportModules( run ) {
 		stdlib.virtualFiles['/modules/std/string/quoted_printable.zzm']
 	);
 	assert.ok( stdlib.virtualFiles['/modules/std/uuid.zzm'] );
+	assert.ok( stdlib.virtualFiles['/modules/std/data/cbor.zzm'] );
+	assert.ok( stdlib.virtualFiles['/modules/std/data/json/schema.zzm'] );
+	assert.ok( stdlib.virtualFiles['/modules/std/path/jsonpointer.zzm'] );
 	assert.ok( stdlib.virtualFiles['/modules/std/path/z.zzm'] );
+	assert.ok( stdlib.virtualFiles['/modules/std/template/z.zzm'] );
+	assert.ok( stdlib.virtualFiles['/modules/std/template/zz.zzm'] );
 	assert.equal( stdlib.virtualFiles['/modules/std/io.zzm'], undefined );
 	assert.deepEqual( stdlib.includePaths, [] );
 }

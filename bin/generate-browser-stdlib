@@ -48,9 +48,19 @@ const DEFAULT_PURE_ZUZU_MODULES = [
 	'std/gui/dialogue',
 	'std/uuid',
 	'std/dump',
+	'std/data/cbor',
 	'std/data/kdl',
 	'std/data/kdl/json',
 	'std/data/kdl/xml',
+	'std/path/jsonpointer',
+	'std/data/json/schema',
+	'std/data/json/schema/core',
+	'std/data/json/schema/format',
+	'std/data/json/schema/model',
+	'std/data/json/schema/output',
+	'std/data/json/schema/relative_pointer',
+	'std/data/json/schema/validation',
+	'std/mail',
 	'std/data/xml/escape',
 	'std/path/simple',
 	'std/path/z',
@@ -64,6 +74,8 @@ const DEFAULT_PURE_ZUZU_MODULES = [
 	'std/path/zz',
 	'std/path/zz/functions',
 	'std/path/zz/operators',
+	'std/template/z',
+	'std/template/zz',
 ];
 
 const DEFAULT_RUNTIME_JS_SET = new Set( DEFAULT_RUNTIME_JS_MODULES );
