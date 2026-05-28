@@ -490,9 +490,11 @@ const requiredModules = [
 			say( __system__{deny_gui} );
 			say( typeof Window );
 			say( ui.title() );
+			say( ui.title );
 			say( ui.find_by_id( "ok" ).text() );
+			say( ui.find_by_id( "ok" ).text );
 		`,
-		'false\nFunction\nBundle XML\nOK',
+		'false\nFunction\nBundle XML\nBundle XML\nOK\nOK',
 	],
 	[
 		'std/template/z',

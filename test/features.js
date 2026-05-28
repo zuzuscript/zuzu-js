@@ -893,7 +893,7 @@ function run( src, options = {} ) {
 		from std/math import Math;
 		let rounded := round( Math.sin( Math.pi / 2 ) * 1000 );
 	` );
-	assert.match( js, /Math\.sin\( __zuzu_div\( __zuzu_get_member\( Math, "pi" \), 2 \) \)/ );
+	assert.match( js, /Math\.sin\( __zuzu_div\( __zuzu_call_member\( Math, "pi" \), 2 \) \)/ );
 	assert.match( js, /__zuzu_mul\(/ );
 }
 
