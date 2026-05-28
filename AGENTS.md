@@ -29,6 +29,13 @@ Do not refer to sibling repositories with `..`; use the local submodules.
   main runtime surface.
 - `lib/host/` separates Node, browser, and Electron host capabilities.
 - `lib/browser-*.js` and `bin/build-browser-bundle` produce browser assets.
+- `bin/build-browser-download` packages the already-built browser assets into
+  an end-user ZIP file. It expects `dist/zuzu-browser.js` and
+  `dist/zuzu-browser-worker.js` to exist, creates minified `.min.js` copies
+  with `npx esbuild`, generates a `README.md` with browser usage notes and an
+  alphabetized list of bundled modules, and writes
+  `dist/zuzu-browser-bundle.zip` unless `--output` is supplied. Run
+  `bin/build-browser-bundle` first when the browser bundle source has changed.
 - `lib/electron/` and `bin/zuzu-js-electron` support Electron execution.
 - `lib/transpiler*` and `bin/zuzu-js-compile` support compilation to JS.
 - `modules/` contains JavaScript implementations of runtime-supported

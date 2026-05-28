@@ -1,0 +1,198 @@
+#!/usr/bin/env python3
+"""Build a downloadable ZIP archive for the ZuzuScript browser bundle."""
+
+from __future__ import annotations
+
+import argparse
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import zipfile
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DIST_ROOT = ROOT / "dist"
+DEFAULT_OUTPUT = DIST_ROOT / "zuzu-browser-bundle.zip"
+
+SOURCE_FILES = (
+    "zuzu-browser.js",
+    "zuzu-browser-worker.js",
+)
+
+
+def fail(message: str) -> None:
+    print(f"build-browser-download: {message}", file=sys.stderr)
+    raise SystemExit(1)
+
+
+def run(command: list[str]) -> None:
+    try:
+        subprocess.run(command, cwd=ROOT, check=True)
+    except FileNotFoundError:
+        fail(f"required command not found: {command[0]}")
+    except subprocess.CalledProcessError:
+        fail(f"command failed: {' '.join(command)}")
+
+
+def require_sources() -> None:
+    for filename in SOURCE_FILES:
+        source = DIST_ROOT / filename
+        if not source.is_file():
+            fail(f"missing {source}. Run bin/build-browser-bundle first.")
+
+
+def minify_javascript(source: Path, target: Path) -> None:
+    run(
+        [
+            "npx",
+            "--yes",
+            "esbuild",
+            str(source),
+            "--minify",
+            f"--outfile={target}",
+        ]
+    )
+
+
+def collect_modules(bundle: Path) -> list[str]:
+    source = bundle.read_text(encoding="utf-8")
+    modules: set[str] = set()
+
+    for match in re.finditer(r'jsModules\[\s*["\']/modules/(.+?)\.js["\']\s*\]', source):
+        modules.add(match.group(1))
+
+    for match in re.finditer(
+        r'virtualFiles\[\s*["\']/modules/(.+?)\.(?:zzm|zzs)["\']\s*\]',
+        source,
+    ):
+        modules.add(match.group(1))
+
+    if not modules:
+        fail(f"could not find bundled module registrations in {bundle}")
+
+    return sorted(modules, key=str.casefold)
+
+
+def readme_text(modules: list[str]) -> str:
+    module_lines = "\n".join(f"- {module}" for module in modules)
+    return f"""# ZuzuScript Browser Bundle
+
+This archive contains the standalone ZuzuScript browser runtime. It lets a web page compile and run ZuzuScript directly in a browser, with a bundled subset of the standard modules and browser-safe runtime support.
+
+## Files
+
+- `zuzu-browser.js`: readable browser bundle.
+- `zuzu-browser.min.js`: minified browser bundle.
+- `zuzu-browser-worker.js`: readable worker bundle for explicit worker loading.
+- `zuzu-browser-worker.min.js`: minified worker bundle.
+
+## Basic Use
+
+Load the bundle from a page:
+
+```html
+<script src="zuzu-browser.min.js"></script>
+```
+
+After it loads, the global `ZuzuBrowser` object is available. The bundle also installs convenience globals:
+
+```html
+<script>
+  zuzu_run('say "Hello from ZuzuScript";');
+</script>
+```
+
+You can also embed ZuzuScript directly:
+
+```html
+<script type="text/x-zuzuscript">
+  say "Hello from an embedded ZuzuScript block";
+</script>
+```
+
+For an explicit runtime instance, use:
+
+```html
+<script>
+  const runtime = ZuzuBrowser.createBrowserRuntime();
+  runtime.zuzu_run('say "Hello";');
+</script>
+```
+
+The main bundle includes worker source by default. If you want the browser to load the worker as a separate file, keep `zuzu-browser-worker.min.js` beside the main bundle and pass a `workerUrl` option when creating a runtime.
+
+## Bundled Modules
+
+{module_lines}
+
+With the full zuzu-js distribution you can build an alternative browser bundle containing a custom set of modules.
+"""
+
+
+def stage_files(staging: Path, modules: list[str]) -> None:
+    for filename in SOURCE_FILES:
+        shutil.copy2(DIST_ROOT / filename, staging / filename)
+
+    minify_javascript(DIST_ROOT / "zuzu-browser.js", staging / "zuzu-browser.min.js")
+    minify_javascript(
+        DIST_ROOT / "zuzu-browser-worker.js",
+        staging / "zuzu-browser-worker.min.js",
+    )
+
+    (staging / "README.md").write_text(readme_text(modules), encoding="utf-8")
+
+
+def write_zip(staging: Path, output: Path) -> None:
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for filename in (
+            "README.md",
+            "zuzu-browser.js",
+            "zuzu-browser.min.js",
+            "zuzu-browser-worker.js",
+            "zuzu-browser-worker.min.js",
+        ):
+            archive.write(staging / filename, filename)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Build the downloadable ZuzuScript browser bundle ZIP."
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=DEFAULT_OUTPUT,
+        help=f"ZIP output path (default: {DEFAULT_OUTPUT.relative_to(ROOT)})",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    output = args.output
+    if not output.is_absolute():
+        output = ROOT / output
+
+    require_sources()
+    modules = collect_modules(DIST_ROOT / "zuzu-browser-worker.js")
+
+    with tempfile.TemporaryDirectory(prefix="zuzu-browser-download.") as tmp:
+        staging = Path(tmp)
+        stage_files(staging, modules)
+        write_zip(staging, output)
+
+    try:
+        display_output = output.relative_to(ROOT)
+    except ValueError:
+        display_output = output
+    print(f"Wrote {display_output}")
+    print(f"Included {len(modules)} modules")
+
+
+if __name__ == "__main__":
+    main()
