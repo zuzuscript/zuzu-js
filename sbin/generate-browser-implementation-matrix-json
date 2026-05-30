@@ -20,7 +20,7 @@ const electronCommand = process.env.ZUZU_JS_BROWSER_ELECTRON_COMMAND
 
 function usage() {
 	return [
-		'Usage: bin/generate-browser-implementation-matrix-json [options]',
+		'Usage: sbin/generate-browser-implementation-matrix-json [options]',
 		'',
 		'Options:',
 		'  --timeout <seconds>      Per-test timeout passed to the browser harness.',
@@ -351,7 +351,7 @@ async function runParent( options ) {
 	if ( !fs.existsSync( bundlePath ) ) {
 		throw new Error(
 			`Missing browser bundle: ${bundlePath}\n` +
-			'Run bin/build-browser-bundle first.'
+			'Run bin/zuzu-build-browser-bundle first.'
 		);
 	}
 	const manifest = {

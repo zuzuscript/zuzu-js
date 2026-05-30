@@ -7,7 +7,7 @@
     "zuzu-js": "bin/zuzu-js",
     "zuzu-js-compile": "bin/zuzu-js-compile",
     "zuzu-js-electron": "bin/zuzu-js-electron",
-    "zuzu-js-browser-ztests": "bin/generate-browser-implementation-matrix-json"
+    "zuzu-js-browser-ztests": "sbin/generate-browser-implementation-matrix-json"
   },
   "directories": {
     "example": "examples",

@@ -7,7 +7,7 @@ ROOT_DIR="$( cd -- "${SCRIPT_DIR}/.." >/dev/null 2>&1 && pwd )"
 for arg in "$@"; do
 	if [[ "${arg}" == "--help" ]]; then
 		printf '%s\n' \
-			"Usage: build-browser-bundle [OPTIONS]" \
+			"Usage: zuzu-build-browser-bundle [OPTIONS]" \
 			"" \
 			"Build dist/zuzu-browser.js and zuzu-browser-worker.js." \
 			"" \
@@ -26,7 +26,7 @@ done
 mkdir -p "${ROOT_DIR}/dist"
 GEN_DIR="$( mktemp -d "${TMPDIR:-/tmp}/zuzu-browser-build.XXXXXX" )"
 trap 'rm -rf "${GEN_DIR}"' EXIT
-node "${ROOT_DIR}/bin/generate-browser-stdlib" "${GEN_DIR}" "$@"
+node "${ROOT_DIR}/bin/zuzu-generate-browser-stdlib" "${GEN_DIR}" "$@"
 
 npx --yes esbuild \
 	"${GEN_DIR}/browser-worker-entry.generated.js" \

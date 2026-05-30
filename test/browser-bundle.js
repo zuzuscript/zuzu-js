@@ -10,7 +10,7 @@ const vm = require( 'node:vm' );
 const bundlePath = path.join( __dirname, '..', 'dist', 'zuzu-browser.js' );
 assert.ok(
 	fs.existsSync( bundlePath ),
-	'run extras/zuzu-js/bin/build-browser-bundle before browser bundle tests'
+	'run extras/zuzu-js/bin/zuzu-build-browser-bundle before browser bundle tests'
 );
 
 const listeners = new Map();

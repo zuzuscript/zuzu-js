@@ -41,7 +41,7 @@ def require_sources() -> None:
     for filename in SOURCE_FILES:
         source = DIST_ROOT / filename
         if not source.is_file():
-            fail(f"missing {source}. Run bin/build-browser-bundle first.")
+            fail(f"missing {source}. Run bin/zuzu-build-browser-bundle first.")
 
 
 def minify_javascript(source: Path, target: Path) -> None:

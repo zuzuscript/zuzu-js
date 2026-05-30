@@ -85,7 +85,7 @@ const RUNTIME_JS_SET = new Set( [
 ] );
 
 const HELP_TEXT = [
-	'Usage: generate-browser-stdlib [OUT_DIR] [OPTIONS]',
+	'Usage: zuzu-generate-browser-stdlib [OUT_DIR] [OPTIONS]',
 	'',
 	'Generate browser stdlib support files for the ZuzuScript JS browser bundle.',
 	'',
@@ -99,12 +99,12 @@ const HELP_TEXT = [
 	'  --help                 Show this help text.',
 	'',
 	'Examples:',
-	'  generate-browser-stdlib /tmp/zuzu-browser',
-	'  generate-browser-stdlib /tmp/zuzu-browser -M lib/zuzu --include=app/main',
+	'  zuzu-generate-browser-stdlib /tmp/zuzu-browser',
+	'  zuzu-generate-browser-stdlib /tmp/zuzu-browser -M lib/zuzu --include=app/main',
 ].join( '\n' );
 
 function usageError( message ) {
-	console.error( `generate-browser-stdlib: ${message}` );
+	console.error( `zuzu-generate-browser-stdlib: ${message}` );
 	process.exit( 1 );
 }
 
@@ -576,7 +576,7 @@ function main() {
 		emitBrowserStdlib( options.outDir, modules, options.moduleRoots.length );
 	}
 	catch ( err ) {
-		console.error( `generate-browser-stdlib: ${err.message}` );
+		console.error( `zuzu-generate-browser-stdlib: ${err.message}` );
 		process.exit( 1 );
 	}
 }

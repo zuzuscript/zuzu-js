@@ -9,8 +9,8 @@ const projectPaths = require( '../lib/paths' );
 const { createBrowserRuntime } = require( '../lib/zuzu' );
 
 const repoRoot = projectPaths.projectRoot;
-const generator = path.join( repoRoot, 'bin', 'generate-browser-stdlib' );
-const builder = path.join( repoRoot, 'bin', 'build-browser-bundle' );
+const generator = path.join( repoRoot, 'bin', 'zuzu-generate-browser-stdlib' );
+const builder = path.join( repoRoot, 'bin', 'zuzu-build-browser-bundle' );
 
 function makeTempDir() {
 	return fs.mkdtempSync( path.join( os.tmpdir(), 'zuzu-browser-stdlib-' ) );
@@ -82,7 +82,7 @@ function reportModules( run ) {
 {
 	const run = runCommand( process.execPath, [ generator, '--help' ] );
 	assert.equal( run.status, 0, run.stderr );
-	assert.match( run.stdout, /^Usage: generate-browser-stdlib /u );
+	assert.match( run.stdout, /^Usage: zuzu-generate-browser-stdlib /u );
 	assert.match( run.stdout, /--include=MODULE/u );
 	assert.match( run.stdout, /--exclude=MODULE/u );
 	assert.equal( run.stderr, '' );
@@ -91,7 +91,7 @@ function reportModules( run ) {
 {
 	const run = runCommand( builder, [ '--help' ] );
 	assert.equal( run.status, 0, run.stderr );
-	assert.match( run.stdout, /^Usage: build-browser-bundle /u );
+	assert.match( run.stdout, /^Usage: zuzu-build-browser-bundle /u );
 	assert.match( run.stdout, /--include=MODULE/u );
 	assert.match( run.stdout, /--exclude=MODULE/u );
 	assert.doesNotMatch( run.stdout, /Built .*zuzu-browser/u );
