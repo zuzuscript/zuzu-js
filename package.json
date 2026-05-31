@@ -1,14 +1,22 @@
 {
-  "name": "zuzu",
-  "version": "1.0.0",
-  "description": "",
-  "main": "run-ztests.js",
+  "name": "zuzu-js",
+  "version": "0.1.0",
+  "description": "JavaScript runtime, compiler, and browser bundle for ZuzuScript.",
+  "main": "lib/zuzu.js",
   "bin": {
+    "zuzu": "bin/zuzu",
     "zuzu-js": "bin/zuzu-js",
     "zuzu-js-compile": "bin/zuzu-js-compile",
-    "zuzu-js-electron": "bin/zuzu-js-electron",
-    "zuzu-js-browser-ztests": "sbin/generate-browser-implementation-matrix-json"
+    "zuzu-js-electron": "bin/zuzu-js-electron"
   },
+  "files": [
+    "bin/",
+    "dist/zuzu-browser.js",
+    "dist/zuzu-browser-worker.js",
+    "lib/",
+    "modules/",
+    "stdlib/modules/"
+  ],
   "directories": {
     "example": "examples",
     "lib": "lib",
@@ -19,9 +27,26 @@
     "test": "node test/cli.js && node test/argument-spread.js && node test/default-operator.js && node test/declaration-unpacking.js && node test/collection-copy.js && node test/std-marshal-cbor.js && node test/std-marshal-data-graph.js && node test/std-marshal-user-object.js && node test/std-marshal-code-table.js && node test/async-parity.js && node test/browser-stdlib-generator.js && node test/browser-gui.js && node test/electron-gui.js && node test/electron-renderer.js && node test/electron-packaging.js",
     "test:electron": "node test/electron-gui.js && node test/electron-renderer.js && node test/electron-packaging.js"
   },
-  "keywords": [],
+  "keywords": [
+    "zuzu",
+    "zuzuscript",
+    "language",
+    "runtime",
+    "compiler"
+  ],
   "author": "",
-  "license": "ISC",
+  "license": "Artistic-1.0 OR GPL-2.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/zuzuscript/zuzu-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zuzuscript/zuzu-js/issues"
+  },
+  "homepage": "https://zuzulang.org/",
+  "engines": {
+    "node": ">=16"
+  },
   "dependencies": {
     "@xmldom/xmldom": "^0.9.10",
     "adm-zip": "^0.5.17",
@@ -34,7 +59,8 @@
     "mysql2": "^3.22.3",
     "node-forge": "^1.4.0",
     "pg": "^8.20.0",
-    "xpath": "^0.0.34"
+    "xpath": "^0.0.34",
+    "zuzu-js": "^0.1.0"
   },
   "devDependencies": {
     "electron": "^41.3.0"
