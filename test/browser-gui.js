@@ -300,6 +300,8 @@ function createBrowserRuntime( options = {} ) {
 				'std/gui/objects.js',
 				'std/data/xml.js',
 				'std/string.js',
+				'std/string/base64.js',
+				'std/time.js',
 				'std/math.js',
 				'std/tui.js',
 				'std/internals.js',

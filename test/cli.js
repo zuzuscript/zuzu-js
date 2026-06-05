@@ -80,9 +80,17 @@ function runElectronCliBin( args, options = {} ) {
 }
 
 {
-	const result = runCli( [ '-e', 'let e := new Exception( message: "boom" ); e.file();' ] );
-	assert.notEqual( result.status, 0 );
-	assert.match( result.stderr, /file is not a function/u );
+	const result = runCli( [
+		'-e',
+		[
+			'let e := new Exception( message: "boom" );',
+			'say( e.file() );',
+			'say( e.line() );',
+			'say( e.code() );',
+		].join( '\n' ),
+	] );
+	assert.equal( result.status, 0 );
+	assert.equal( result.stdout, 'null\nnull\nnull\n' );
 }
 
 {
