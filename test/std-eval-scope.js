@@ -41,3 +41,35 @@ const runtime = new ZuzuScript( {
 	assert.equal( result.status, 0, result.stderr );
 	assert.equal( result.stdout, '42\n' );
 }
+
+{
+	const result = runtime.runSource(
+		[
+			'from std/eval import eval as e;',
+			'let x := 41;',
+			'say( e( "x + 1;" ) );',
+			'let y := 9;',
+			'e( "y += 2;" );',
+			'say( y );',
+		].join( '\n' ),
+		{ filename: '/app/std-eval-alias-scope.zzs' }
+	);
+	assert.equal( result.status, 0, result.stderr );
+	assert.equal( result.stdout, '42\n11\n' );
+}
+
+{
+	const result = runtime.runSource(
+		[
+			'from std/eval import eval as e;',
+			'function f () {',
+			'\tlet answer := 40;',
+			'\treturn e( "answer + 2;" );',
+			'}',
+			'say( f() );',
+		].join( '\n' ),
+		{ filename: '/app/std-eval-alias-fn.zzs' }
+	);
+	assert.equal( result.status, 0, result.stderr );
+	assert.equal( result.stdout, '42\n' );
+}

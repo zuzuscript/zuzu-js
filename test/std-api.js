@@ -116,6 +116,18 @@ const { escape, fill_template, parse, unescape } = require( '../modules/std/net/
 	);
 }
 
+{
+	const file = Path.tempfile();
+	file.spew_utf8( 'a' );
+	file.append_utf8( 'b' );
+	assert.equal( file.slurp_utf8(), 'ab' );
+
+	const binaryFile = Path.tempfile();
+	binaryFile.spew( new BinaryString( Uint8Array.from( [ 1 ] ) ) );
+	binaryFile.append( new BinaryString( Uint8Array.from( [ 2 ] ) ) );
+	assert.deepEqual( Array.from( binaryFile.slurp().bytes ), [ 1, 2 ] );
+}
+
 
 {
 	assert.equal( escape( 'tea time+milk' ), 'tea%20time%2Bmilk' );

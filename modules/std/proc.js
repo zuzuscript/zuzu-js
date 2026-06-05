@@ -2,6 +2,7 @@
 
 const { spawn, spawnSync } = require( 'node:child_process' );
 const fs = require( 'node:fs' );
+const os = require( 'node:os' );
 const path = require( 'node:path' );
 const { Task, traceBlockingOperation } = require( './task' );
 
@@ -134,12 +135,15 @@ function runCommand( cmd, options = {} ) {
 		return cwdErrorResult( cmd, options, cwd.error );
 	}
 
+	const stdinDir = fs.mkdtempSync( path.join( os.tmpdir(), 'zuzu-proc-stdin-' ) );
+	const stdinPath = path.join( stdinDir, 'stdin' );
+	fs.writeFileSync( stdinPath, stdin, 'utf8' );
+	const stdinFd = fs.openSync( stdinPath, 'r' );
 	const spawnOptions = {
-		input: stdin,
 		encoding: 'utf8',
 		maxBuffer: 10 * 1024 * 1024,
 		stdio: [
-			'pipe',
+			stdinFd,
 			captureStdout ? 'pipe' : 'ignore',
 			mergeStderr ? 'pipe' : ( captureStderr ? 'pipe' : 'ignore' ),
 		],
@@ -166,7 +170,19 @@ function runCommand( cmd, options = {} ) {
 		}
 	}
 
-	const spawned = spawnSync( cmd[0], cmd.slice( 1 ), spawnOptions );
+	let spawned;
+	try {
+		spawned = spawnSync( cmd[0], cmd.slice( 1 ), spawnOptions );
+	}
+	finally {
+		fs.closeSync( stdinFd );
+		try {
+			fs.unlinkSync( stdinPath );
+			fs.rmdirSync( stdinDir );
+		}
+		catch ( _err ) {
+		}
+	}
 	const timedOut = spawned.error && spawned.error.code === 'ETIMEDOUT';
 	const signal = timedOut
 		? 14

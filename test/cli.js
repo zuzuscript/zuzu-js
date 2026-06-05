@@ -65,6 +65,38 @@ function runElectronCliBin( args, options = {} ) {
 	const result = runCli( [
 		'-e',
 		[
+			'say( "x" != null );',
+			'say( "x" != "x" );',
+			'say( "x" != "y" );',
+			'say( "x" ≠ null );',
+		].join( '\n' ),
+	] );
+	assert.equal( result.status, 0, result.stderr );
+	assert.equal( result.stdout, '1\n0\n1\n1\n' );
+}
+
+{
+	const result = runCli( [
+		'-e',
+		[
+			'from std/proc import Proc;',
+			'let result := Proc.run(',
+			'\t"cat",',
+			'\t[],',
+			'\t{ capture_stdout: true, capture_stderr: true, stdin: "abc" }',
+			');',
+			'say( result{exit_code} );',
+			'say( result{stdout} );',
+		].join( '\n' ),
+	] );
+	assert.equal( result.status, 0, result.stderr );
+	assert.equal( result.stdout, '0\nabc\n' );
+}
+
+{
+	const result = runCli( [
+		'-e',
+		[
 			'try {',
 			'	throw new Exception( message: "boom" );',
 			'}',

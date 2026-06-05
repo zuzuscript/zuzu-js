@@ -389,6 +389,14 @@ class Path {
 	slurp_utf8_async() {
 		return new Task( async () => fs.promises.readFile( this.value, 'utf8' ) );
 	}
+	append( value ) {
+		traceBlockingOperation( 'std/io Path.append' );
+		if ( !( value && value.bytes instanceof Uint8Array ) ) {
+			throw new Error( `TypeException: Path.append expects BinaryString, got ${typeName( value )}` );
+		}
+		fs.appendFileSync( this.value, Buffer.from( value.bytes ) );
+		return this;
+	}
 	append_async( value ) {
 		return new Task( async () => {
 			if ( !( value && value.bytes instanceof Uint8Array ) ) {
@@ -397,6 +405,14 @@ class Path {
 			await fs.promises.appendFile( this.value, Buffer.from( value.bytes ) );
 			return this;
 		} );
+	}
+	append_utf8( text ) {
+		traceBlockingOperation( 'std/io Path.append_utf8' );
+		if ( typeof text !== 'string' ) {
+			throw new Error( `TypeException: Path.append_utf8 expects String, got ${typeName( text )}` );
+		}
+		fs.appendFileSync( this.value, text, 'utf8' );
+		return this;
 	}
 	append_utf8_async( text ) {
 		return new Task( async () => {
