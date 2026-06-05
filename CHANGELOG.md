@@ -7,6 +7,12 @@ and this project roughly adheres to [Semantic Versioning](https://semver.org/spe
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-06-05
+
+### Changed
+
+- Bumped the package and CLI version to 0.1.2.
+
 ### Added
 
 - Added synchronous `std/io` path append helpers for UTF-8 text and
