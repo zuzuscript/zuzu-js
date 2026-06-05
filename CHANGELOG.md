@@ -9,7 +9,7 @@ and this project roughly adheres to [Semantic Versioning](https://semver.org/spe
 
 ### Changed
 
-- Updated the `languagetests` submodule.
+- Updated the `docs/userguide` and `languagetests` submodules.
 
 ### Fixed
 
