@@ -76,6 +76,18 @@ assert.deepEqual(
 	[ 'for_id', 'host', 'port' ]
 );
 
+assert.deepEqual(
+	collectTopLevelDeclarations( `
+		function has_quote_regex () {
+			return text ~ /^[btnrf"'\\\\]$/;
+		}
+		function after_regex () {
+			return true;
+		}
+	`, (source) => source ).sort(),
+	[ 'after_regex', 'has_quote_regex' ]
+);
+
 const runtime = new ZuzuScript( { transpiler: 'new-only' } );
 const result = runtime.runSource( `
 	from test/more import *;
