@@ -7,6 +7,15 @@ and this project roughly adheres to [Semantic Versioning](https://semver.org/spe
 
 ## [Unreleased]
 
+### Changed
+
+- Updated statement parsing so simple statements require semicolons unless
+  they are final in a block or file.
+
+### Fixed
+
+- Fixed module export detection after regexp literals.
+
 ## [0.1.2] - 2026-06-05
 
 ### Changed
