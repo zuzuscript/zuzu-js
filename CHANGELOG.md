@@ -14,6 +14,8 @@ and this project roughly adheres to [Semantic Versioning](https://semver.org/spe
 
 ### Fixed
 
+- Fixed function, lambda, and method parameter bindings so assignment attempts
+  fail as immutable binding mutations.
 - Fixed module export detection after regexp literals.
 
 ## [0.1.2] - 2026-06-05
