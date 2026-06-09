@@ -98,12 +98,6 @@ The npm package includes JavaScript-backed runtime modules under
 `stdlib/modules/`. Pure ZuzuScript modules are loaded, parsed, and
 evaluated through normal ZuzuScript runtime semantics.
 
-## Status
-
-This is an early npm release of the JavaScript runtime. It is useful for
-running and compiling ZuzuScript programs, but language and standard
-library compatibility are still under active development.
-
 ## Licence
 
 `zuzu-js` is free software; you may redistribute it and/or modify it
