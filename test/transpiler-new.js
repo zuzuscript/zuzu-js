@@ -72,6 +72,33 @@ const {
 }
 
 {
+	const js = transpileWithoutFallback( `
+		class Box {
+			method value () {
+				return 1;
+			}
+		}
+		let box := new Box();
+		let got := box.value;
+	` );
+	assert.match( js, /__zuzu_call_member\(\s*box,\s*"value"\s*\)/u );
+}
+
+for ( const source of [
+	'class Box { method value () { return 1; } } let box := new Box(); box.value := 2;',
+	'class Box { method value () { return 1; } } let box := new Box(); box.value() := 2;',
+	'function value () { return 1; } value() := 2;',
+	'class Box { method value () { return 1; } } let box := new Box(); box.value += 2;',
+	'class Box { method value () { return 1; } } let box := new Box(); ++box.value;',
+	'class Box { method value () { return 1; } } let box := new Box(); box.value++;',
+] ) {
+	assert.throws(
+		() => transpileWithoutFallback( source ),
+		/Invalid assignment target/u
+	);
+}
+
+{
 	const runtime = new ZuzuScript();
 	const result = runtime.runSource( `
 		let left := 40;
@@ -80,6 +107,28 @@ const {
 	`, { filename: '/tmp/new-transpiler.zzs' } );
 	assert.equal( result.status, 0, result.stderr );
 	assert.equal( result.stdout, '42\n' );
+}
+
+{
+	const runtime = new ZuzuScript();
+	const result = runtime.runSource( `
+		from test/more import *;
+
+		class Box {
+			let hidden := 5;
+		}
+
+		let err := exception( function () {
+			let box := new Box();
+			let got := box.hidden;
+		} );
+		isnt( err, null, "dot syntax does not read a field fallback" );
+
+		done_testing();
+	`, { filename: '/tmp/dot-method-no-fallback.zzs' } );
+	assert.equal( result.status, 0, result.stderr );
+	assert.match( result.stdout, /1\.\.1/u );
+	assert.doesNotMatch( result.stdout, /^not ok/mu );
 }
 
 {

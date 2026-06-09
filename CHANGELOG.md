@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project roughly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+- Rejected direct assignment, compound assignment, and increment/decrement
+  updates targeting method or function calls in the new transpiler, while
+  still allowing assignment into collections returned from calls.
+- Removed the zero-argument dot-call fallback to object fields so
+  `object.name` and `Class.name` always behave as method calls.
+- Fixed mixed positional/named argument handling for constructor calls and
+  runtime functions using `... PairList` plus trailing positional parameters.
+
 ## 0.2.0 - 2026-06-08
 
 *stdlib tag 20260608, languagetests tag 20260608.*
