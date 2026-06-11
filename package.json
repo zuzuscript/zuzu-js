@@ -48,6 +48,7 @@
     "node": ">=16"
   },
   "dependencies": {
+    "@std-uritemplate/std-uritemplate": "^2.0.10",
     "@xmldom/xmldom": "^0.9.10",
     "adm-zip": "^0.5.17",
     "better-sqlite3": "^11.10.0",

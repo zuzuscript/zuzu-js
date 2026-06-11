@@ -68,37 +68,46 @@ function parse( value ) {
 	return out;
 }
 
-function _templateVar( values, name ) {
-	if ( values[name] == null ) {
-		return '';
-	}
-	return encodeURIComponent( _str( values[name] ) );
-}
+const { StdUriTemplate } = require( '@std-uritemplate/std-uritemplate' );
 
-function _templateQuery( values, namesText ) {
-	const names = String( namesText )
-		.split( /\s*,\s*/u )
-		.filter( Boolean );
-	const parts = [];
-	for ( const name of names ) {
-		if ( values[name] == null ) {
-			continue;
-		}
-		const key = encodeURIComponent( name );
-		const val = encodeURIComponent( _str( values[name] ) );
-		parts.push( `${key}=${val}` );
+function _templateValue( value ) {
+	if ( value == null ) {
+		return null;
 	}
-	return parts.length > 0 ? `?${parts.join( '&' )}` : '';
+	if ( Array.isArray( value ) ) {
+		return value.map( (item) => _str( item ) );
+	}
+	if ( typeof value === 'boolean' ) {
+		return value ? 'true' : 'false';
+	}
+	if ( typeof value === 'object' && !( value.bytes instanceof Uint8Array ) ) {
+		// Associative values: keys sorted for deterministic expansion.
+		const out = {};
+		for ( const key of Object.keys( value ).sort() ) {
+			out[key] = _str( value[key] );
+		}
+		return out;
+	}
+	return _str( value );
 }
 
 function fill_template( template, values ) {
 	const source = _str( template );
-	const data = values && typeof values === 'object' && !Array.isArray( values )
-		? values
-		: {};
-	return source
-		.replace( /\{\?([^}]+)\}/gu, ( _, names ) => _templateQuery( data, names ) )
-		.replace( /\{([a-zA-Z_][a-zA-Z0-9_]*)\}/gu, ( _, name ) => _templateVar( data, name ) );
+	const data = {};
+	if ( values && typeof values === 'object' && !Array.isArray( values ) ) {
+		for ( const key of Object.keys( values ) ) {
+			const converted = _templateValue( values[key] );
+			if ( converted != null ) {
+				data[key] = converted;
+			}
+		}
+	}
+	try {
+		return StdUriTemplate.expand( source, data );
+	}
+	catch ( err ) {
+		throw new Error( `Exception: invalid URL template: ${source}` );
+	}
 }
 
 module.exports = {
