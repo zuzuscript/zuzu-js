@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project roughly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+- String comparison operators (`cmp`, `lt`, `gt`, `le`, `ge` and their
+  case-insensitive variants) and `sortstr` now order strings by Unicode
+  code point, matching zuzu-rust and zuzu-perl. Previously they used
+  `localeCompare`, giving locale-dependent, case-folded ordering (e.g.
+  `"filterUnits" cmp "filterres"` returned 1 instead of -1).
+
 ## 0.3.0 - 2026-06-10
 
 *stdlib tag 20260610, languagetests tag 20260610.*
