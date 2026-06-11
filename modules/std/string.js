@@ -1,5 +1,7 @@
 'use strict';
 
+const { BinaryString } = require( '../../lib/runtime-helpers' );
+
 function toStringValue( value ) {
 	if ( value instanceof RegExp ) {
 		return value.source;
@@ -272,6 +274,23 @@ function camel( text ) {
 	return ws.map( (w, i) => ( i === 0 ? w : `${w[0].toUpperCase()}${w.slice( 1 )}` ) ).join( '' );
 }
 
+function to_binary( value ) {
+	if ( typeof value !== 'string' && !( value instanceof String ) ) {
+		const type = value == null
+			? 'Null'
+			: ( value && value.bytes instanceof Uint8Array ) ? 'BinaryString' : typeof value;
+		throw new Error( `TypeException: to_binary expects String, got ${type}` );
+	}
+	return new BinaryString( new TextEncoder().encode( String( value ) ) );
+}
+
+function to_string( value ) {
+	if ( !( value && value.bytes instanceof Uint8Array ) ) {
+		throw new Error( 'TypeException: to_string expects BinaryString' );
+	}
+	return new TextDecoder( 'utf-8', { fatal: true } ).decode( value.bytes );
+}
+
 module.exports = {
 	camel,
 	chomp,
@@ -295,5 +314,7 @@ module.exports = {
 	sprint,
 	substr,
 	title,
+	to_binary,
+	to_string,
 	trim,
 };

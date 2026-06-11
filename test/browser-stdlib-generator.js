@@ -107,6 +107,7 @@ function reportModules( run ) {
 		'javascript',
 		'std/string',
 		'std/string/base64',
+		'std/string/encode',
 		'std/time',
 		'std/marshal',
 		'std/task',
