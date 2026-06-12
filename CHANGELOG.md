@@ -62,6 +62,12 @@ and this project roughly adheres to [Semantic Versioning](https://semver.org/spe
   callable instance methods, and made integer `bpow` use BigInt arithmetic so
   large exponents (such as `BigNum.from_dec("10").bpow(1000)`) produce exact
   decimal text.
+- Fixed `std/time` wall-time derived methods so `day_of_week`, `day`, and
+  `day_of_year` use local calendar parts consistently with Perl and Rust time
+  behavior.
+- Aligned `say` output for IEEE infinities with Perl runtime behaviour so
+  overflowing numeric results render as `Inf` and `-Inf` rather than
+  `Infinity` and `-Infinity`.
 
 ## 0.3.0 - 2026-06-10
 
