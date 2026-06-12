@@ -10,7 +10,7 @@ function normalizeNumberArgs( values ) {
 }
 
 const ZMath = {
-	pi: PI,
+	pi() { return PI; },
 	sin( value ) { return Math.sin( Number( value ?? 0 ) ); },
 	cos( value ) { return Math.cos( Number( value ?? 0 ) ); },
 	tan( value ) { return Math.tan( Number( value ?? 0 ) ); },

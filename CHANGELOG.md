@@ -46,6 +46,8 @@ and this project roughly adheres to [Semantic Versioning](https://semver.org/spe
 
 ### Fixed
 
+- Fixed `std/math` so `Math.pi` is exposed as a callable zero-argument method
+  while module-level `pi`/`π` imports remain scalar constants.
 - String comparison operators (`cmp`, `lt`, `gt`, `le`, `ge` and their
   case-insensitive variants) and `sortstr` now order strings by Unicode
   code point, matching zuzu-rust and zuzu-perl. Previously they used
