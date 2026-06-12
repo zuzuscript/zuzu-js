@@ -15,7 +15,7 @@ const MONTH_BY_NAME = new Map( [
 	[ 'nov', 11 ], [ 'november', 11 ],
 	[ 'dec', 12 ], [ 'december', 12 ],
 ] );
-const DAY_ABBR = [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' ];
+const DAY_ABBR = [ 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun' ];
 const WEEKDAY_BY_NAME = new Set( [
 	'sun', 'sunday',
 	'mon', 'monday',
@@ -73,25 +73,25 @@ function stripTrailingPeriod( text ) {
 }
 
 function weekdayIndex( parts ) {
-	const date = new Date( Date.UTC(
+	const date = new Date(
 		parts.year,
 		parts.month - 1,
 		parts.day
-	) );
-	return ( ( date.getUTCDay() + 6 ) % 7 ) + 1;
+	);
+	return ( ( date.getDay() + 6 ) % 7 ) + 1;
 }
 
 function weekParts( parts ) {
-	const date = new Date( Date.UTC(
+	const date = new Date(
 		parts.year,
 		parts.month - 1,
 		parts.day
-	) );
-	const weekDay = date.getUTCDay() || 7;
+	);
+	const weekDay = date.getDay() || 7;
 	const shifted = new Date( date );
-	shifted.setUTCDate( date.getUTCDate() + 4 - weekDay );
-	const weekYear = shifted.getUTCFullYear();
-	const yearStart = new Date( Date.UTC( weekYear, 0, 1 ) );
+	shifted.setDate( date.getDate() + 4 - weekDay );
+	const weekYear = shifted.getFullYear();
+	const yearStart = new Date( weekYear, 0, 1 );
 	return {
 		year: weekYear,
 		week: Math.ceil( ( shifted - yearStart ) / 86400000 / 7 + 1 ),
@@ -103,8 +103,8 @@ function dayOfMonthForDisplay( day ) {
 }
 
 function dayOfYear( parts ) {
-	const start = Date.UTC( parts.year, 0, 1 );
-	const now = Date.UTC( parts.year, parts.month - 1, parts.day );
+	const start = new Date( parts.year, 0, 1 );
+	const now = new Date( parts.year, parts.month - 1, parts.day );
 	return ( now - start ) / 86400000;
 }
 

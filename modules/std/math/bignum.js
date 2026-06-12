@@ -203,6 +203,10 @@ class BigNum {
 		return this.to_dec();
 	}
 
+	toString() {
+		return String( this.to_String() );
+	}
+
 	to_Number() {
 		return this._toNumber();
 	}
