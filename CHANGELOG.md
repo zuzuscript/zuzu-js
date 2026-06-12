@@ -51,6 +51,13 @@ and this project roughly adheres to [Semantic Versioning](https://semver.org/spe
   code point, matching zuzu-rust and zuzu-perl. Previously they used
   `localeCompare`, giving locale-dependent, case-folded ordering (e.g.
   `"filterUnits" cmp "filterres"` returned 1 instead of -1).
+- Added missing `std/time` instance methods to restore parity with
+  `zuzu-perl` and `zuzu-rust` (`yy`, `day_of_week`, `day_of_year`,
+  `month_last_day`, `hms`, `ymd`, `mdy`, `dmy`, `date`, `time`,
+  `cdate`, `tzoffset`, `is_leap_year`, `week`, `week_year`,
+  `julian_day`).
+- Added cross-host conformance coverage for the `Time` method surface in
+  `test/cross-host-conformance.js`.
 
 ## 0.3.0 - 2026-06-10
 
