@@ -58,6 +58,10 @@ and this project roughly adheres to [Semantic Versioning](https://semver.org/spe
   `julian_day`).
 - Added cross-host conformance coverage for the `Time` method surface in
   `test/cross-host-conformance.js`.
+- Fixed `std/math/bignum` in the JS runtime to expose BigNum operations as
+  callable instance methods, and made integer `bpow` use BigInt arithmetic so
+  large exponents (such as `BigNum.from_dec("10").bpow(1000)`) produce exact
+  decimal text.
 
 ## 0.3.0 - 2026-06-10
 
