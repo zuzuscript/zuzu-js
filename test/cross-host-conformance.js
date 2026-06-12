@@ -123,6 +123,37 @@ for ( const testCase of pureSnippets ) {
 			`,
 		},
 		{
+			name: 'std/time method coverage',
+			source: `
+				from std/time import Time;
+				let t := new Time( 0, timezone: 'UTC' );
+				say( t.sec() );
+				say( t.min() );
+				say( t.hour() );
+				say( t.day_of_month() );
+				say( t.mon() );
+				say( t.month() );
+				say( t.year() );
+				say( t.yy() );
+				say( t.day_of_week() );
+				say( t.day() );
+				say( t.day_of_year() );
+				say( t.month_last_day() );
+				say( t.hms() );
+				say( t.ymd() );
+				say( t.mdy() );
+				say( t.dmy() );
+				say( t.date() );
+				say( t.time() );
+				say( t.cdate() );
+				say( t.tzoffset() );
+				say( t.is_leap_year() );
+				say( t.week() );
+				say( t.week_year() );
+				say( t.julian_day() );
+			`,
+		},
+		{
 			name: 'std/data/json canonical',
 			source: `
 				from std/data/json import JSON;

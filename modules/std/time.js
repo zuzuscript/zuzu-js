@@ -15,6 +15,7 @@ const MONTH_BY_NAME = new Map( [
 	[ 'nov', 11 ], [ 'november', 11 ],
 	[ 'dec', 12 ], [ 'december', 12 ],
 ] );
+const DAY_ABBR = [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' ];
 const WEEKDAY_BY_NAME = new Set( [
 	'sun', 'sunday',
 	'mon', 'monday',
@@ -63,12 +64,70 @@ function offsetSeconds( zone ) {
 	return m[1] === '-' ? -seconds : seconds;
 }
 
-function pad( value, width = 2 ) {
-	return String( value ).padStart( width, '0' );
+function pad( value, width = 2, fill = '0' ) {
+	return String( value ).padStart( width, fill );
 }
 
 function stripTrailingPeriod( text ) {
 	return String( text ).replace( /\.+$/u, '' ).toLowerCase();
+}
+
+function weekdayIndex( parts ) {
+	const date = new Date( Date.UTC(
+		parts.year,
+		parts.month - 1,
+		parts.day
+	) );
+	return ( ( date.getUTCDay() + 6 ) % 7 ) + 1;
+}
+
+function weekParts( parts ) {
+	const date = new Date( Date.UTC(
+		parts.year,
+		parts.month - 1,
+		parts.day
+	) );
+	const weekDay = date.getUTCDay() || 7;
+	const shifted = new Date( date );
+	shifted.setUTCDate( date.getUTCDate() + 4 - weekDay );
+	const weekYear = shifted.getUTCFullYear();
+	const yearStart = new Date( Date.UTC( weekYear, 0, 1 ) );
+	return {
+		year: weekYear,
+		week: Math.ceil( ( shifted - yearStart ) / 86400000 / 7 + 1 ),
+	};
+}
+
+function dayOfMonthForDisplay( day ) {
+	return String( day ).padStart( 2, ' ' );
+}
+
+function dayOfYear( parts ) {
+	const start = Date.UTC( parts.year, 0, 1 );
+	const now = Date.UTC( parts.year, parts.month - 1, parts.day );
+	return ( now - start ) / 86400000;
+}
+
+function julianDay( parts ) {
+	let year = parts.year;
+	let month = parts.month;
+	const day = parts.day;
+	if ( month <= 2 ) {
+		year -= 1;
+		month += 12;
+	}
+	const a = Math.floor( ( 14 - month ) / 12 );
+	const y = year + 4800 - a;
+	const m = month + 12 * a - 3;
+	const jd = day
+		+ Math.floor( ( 153 * m + 2 ) / 5 )
+		+ 365 * y
+		+ Math.floor( y / 4 )
+		- Math.floor( y / 100 )
+		+ Math.floor( y / 400 )
+		- 32045;
+	const fraction = ( parts.hour * 3600 + parts.minute * 60 + parts.second ) / 86400;
+	return jd + fraction - 0.5;
 }
 
 function isLeapYear( year ) {
@@ -435,6 +494,39 @@ class Time {
 	mon() { return this._parts().month; }
 	month() { return this.mon(); }
 	year() { return this._parts().year; }
+	yy() { return pad( this._parts().year % 100, 2 ); }
+	day_of_week() { return weekdayIndex( this._parts() ); }
+	day() { return DAY_ABBR[ this.day_of_week() - 1 ]; }
+	day_of_year() { return dayOfYear( this._parts() ); }
+	month_last_day() { return daysInMonth( this._parts().year, this._parts().month ); }
+	hms( separator = ':' ) {
+		const p = this._parts();
+		return `${pad( p.hour )}${String( separator )}${pad( p.minute )}${String( separator )}${pad( p.second )}`;
+	}
+	ymd( separator = '-' ) {
+		const p = this._parts();
+		const sep = String( separator );
+		return `${pad( p.year, 4 )}${sep}${pad( p.month )}${sep}${pad( p.day )}`;
+	}
+	mdy( separator = '-' ) {
+		const p = this._parts();
+		const sep = String( separator );
+		return `${pad( p.month )}${sep}${pad( p.day )}${sep}${pad( p.year, 4 )}`;
+	}
+	dmy( separator = '-' ) {
+		const p = this._parts();
+		const sep = String( separator );
+		return `${pad( p.day )}${sep}${pad( p.month )}${sep}${pad( p.year, 4 )}`;
+	}
+	cdate() {
+		const p = this._parts();
+		return `${DAY_ABBR[ weekdayIndex( p ) - 1 ]} ${MONTHS[p.month - 1]} ${dayOfMonthForDisplay( p.day )} ${pad( p.hour )}:${pad( p.minute )}:${pad( p.second )} ${p.year}`;
+	}
+	tzoffset() { return offsetForEpoch( this._epoch, this._timezone ); }
+	is_leap_year() { return isLeapYear( this._parts().year ); }
+	week() { return weekParts( this._parts() ).week; }
+	week_year() { return weekParts( this._parts() ).year; }
+	julian_day() { return julianDay( this._parts() ); }
 	add_seconds( n ) { return this._clone( this._epoch + Number( n ) ); }
 	add_minutes( n ) { return this.add_seconds( Number( n ) * 60 ); }
 	add_hours( n ) { return this.add_seconds( Number( n ) * 3600 ); }
@@ -509,8 +601,7 @@ class Time {
 	}
 	to_rfc5322( options = {} ) {
 		const p = this._parts();
-		const d = new Date( Date.UTC( p.year, p.month - 1, p.day ) );
-		const weekday = [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' ][ d.getUTCDay() ];
+		const weekday = DAY_ABBR[ weekdayIndex( p ) - 1 ];
 		const core = `${pad( p.day )} ${MONTHS[p.month - 1]} ${pad( p.year, 4 )} ${pad( p.hour )}:${pad( p.minute )}:${pad( p.second )} ${formatOffset( offsetForEpoch( this._epoch, this._timezone ), false )}`;
 		return options.include_weekday === false ? core : `${weekday}, ${core}`;
 	}
