@@ -46,6 +46,9 @@ and this project roughly adheres to [Semantic Versioning](https://semver.org/spe
 
 ### Fixed
 
+- `std/math/bignum` now returns String values from `BigNum.to_dec` and
+  `BigNum.to_String` consistently; use `BigNum.to_Number` for numeric
+  conversion.
 - Fixed `std/math` so `Math.pi` is exposed as a callable zero-argument method
   while module-level `pi`/`π` imports remain scalar constants.
 - String comparison operators (`cmp`, `lt`, `gt`, `le`, `ge` and their

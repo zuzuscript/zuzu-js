@@ -186,16 +186,6 @@ class BigNum {
 	}
 
 	to_dec() {
-		if ( this._isInt ) {
-			const value = this._toBigInt();
-			if ( value !== null ) {
-				const number = Number( value );
-				if ( Number.isSafeInteger( number ) ) {
-					return number;
-				}
-			}
-			return this._textify();
-		}
 		return this._textify();
 	}
 
