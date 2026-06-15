@@ -130,6 +130,7 @@ assert.equal( typeof context.ZuzuBrowser, 'object' );
 assert.equal( typeof context.ZuzuBrowser.createBrowserRuntime, 'function' );
 assert.equal( typeof context.ZuzuBrowser.createBrowserGuiBridge, 'function' );
 assert.equal( typeof context.ZuzuBrowser.createBrowserGuiRenderer, 'function' );
+assert.equal( typeof context.ZuzuBrowser.addModule, 'function' );
 assert.equal( typeof context.ZuzuBrowser.zuzu_eval, 'function' );
 assert.equal( typeof context.zuzu_eval, 'function' );
 assert.equal( typeof context.zuzu_run, 'function' );
@@ -641,6 +642,36 @@ for ( const [ name, source, expected ] of requiredModules ) {
 }
 
 async function runAsyncTests() {
+	{
+		let fetchCount = 0;
+		context.ZuzuBrowser.addModule(
+			'bundle/remote',
+			'https://example.net/modules/bundle/remote.zzm'
+		);
+		const remoteRuntime = context.ZuzuBrowser.createBrowserRuntime( {
+			fetch( url ) {
+				fetchCount++;
+				assert.equal(
+					url,
+					'https://example.net/modules/bundle/remote.zzm'
+				);
+				return Promise.resolve( {
+					ok: true,
+					text() {
+						return Promise.resolve( 'export const value := 42;' );
+					},
+				} );
+			},
+		} );
+		const remoteResult = await remoteRuntime.zuzu_run(
+			'from bundle/remote import value; from bundle/remote import value as again; say(value + again);',
+			{ filename: '/app/bundle-remote.zzs' },
+		);
+		assert.equal( remoteResult.status, 0, remoteResult.stderr );
+		assert.equal( remoteResult.stdout, '84\n' );
+		assert.equal( fetchCount, 1 );
+	}
+
 	const runtime = context.ZuzuBrowser.createBrowserRuntime( {
 		workerFactory: createVmWorkerFactory(),
 	} );

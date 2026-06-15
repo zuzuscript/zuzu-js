@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project roughly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added `ZuzuBrowser.addModule(moduleName, url)` for browser runtimes so
+  whitelisted remote ZuzuScript modules can be fetched, parsed, imported, and
+  cached on first use; the browser distribution ZIP README now documents this
+  API.
+
+### Fixed
+
+- Dynamic method calls whose method expression evaluates to a Method value now
+  invoke that method with the syntactic receiver, matching zuzu-perl and
+  zuzu-rust, and computed method-call receivers are evaluated once.
+
 ## 0.4.0 - 2026-06-12
 
 *stdlib tag 20260612, languagetests tag 20260612.*

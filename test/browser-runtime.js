@@ -4,6 +4,7 @@ const assert = require( 'node:assert/strict' );
 const path = require( 'node:path' );
 const projectPaths = require( '../lib/paths' );
 const { ZuzuScript, createBrowserRuntime } = require( '../lib/zuzu' );
+const { addModule } = require( '../lib/browser-bundle-entry' );
 
 const repoRoot = projectPaths.projectRoot;
 
@@ -67,8 +68,6 @@ async function main() {
 	{
 		const marshalModulePath = path.join(
 			repoRoot,
-			'extras',
-			'zuzu-js',
 			'modules',
 			'std',
 			'marshal.js'
@@ -106,6 +105,65 @@ async function main() {
 		assert.equal(
 			result.stdout,
 			'Function\nFunction\nFunction\nClass\nClass\ntrue\n1\ntrue\n'
+		);
+	}
+
+	{
+		const fetchCalls = [];
+		addModule( 'foo/base', 'https://example.net/modules/foo/base.zzm' );
+		addModule( 'foo/bar', 'https://example.net/modules/foo/bar.zzm' );
+		const browser = createBrowserRuntime( {
+			fetch( url ) {
+				fetchCalls.push( url );
+				if ( url.endsWith( '/foo/base.zzm' ) ) {
+					return Promise.resolve( {
+						ok: true,
+						text() {
+							return Promise.resolve( `
+								export const base := 41;
+							` );
+						},
+					} );
+				}
+				return Promise.resolve( {
+					ok: true,
+					text() {
+						return Promise.resolve( `
+							from foo/base import base;
+							export const value := base + 1;
+						` );
+					},
+				} );
+			},
+		} );
+		const first = await browser.zuzu_run( `
+			from foo/bar import value;
+			from foo/bar import value as again;
+			say( value );
+			say( again );
+		`, { filename: '/app/remote-main.zzs' } );
+		assert.equal( first.status, 0, first.stderr );
+		assert.equal( first.stdout, '42\n42\n' );
+		assert.deepEqual(
+			fetchCalls,
+			[
+				'https://example.net/modules/foo/bar.zzm',
+				'https://example.net/modules/foo/base.zzm',
+			]
+		);
+
+		const second = await browser.zuzu_run( `
+			from foo/bar import value;
+			say( value + 1 );
+		`, { filename: '/app/remote-again.zzs' } );
+		assert.equal( second.status, 0, second.stderr );
+		assert.equal( second.stdout, '43\n' );
+		assert.deepEqual(
+			fetchCalls,
+			[
+				'https://example.net/modules/foo/bar.zzm',
+				'https://example.net/modules/foo/base.zzm',
+			]
 		);
 	}
 

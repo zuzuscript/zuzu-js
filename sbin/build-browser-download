@@ -122,6 +122,25 @@ For an explicit runtime instance, use:
 </script>
 ```
 
+## Loading Remote Modules
+
+Use `ZuzuBrowser.addModule(moduleName, url)` to allow a browser script to import a ZuzuScript module from a specific URL. The module is fetched, parsed, and cached the first time it is imported, so later imports of the same module reuse the cached module instead of making another HTTP request.
+
+```html
+<script>
+  ZuzuBrowser.addModule(
+    "foo/bar",
+    "https://example.net/modules/foo/bar.zzm"
+  );
+
+  const runtime = ZuzuBrowser.createBrowserRuntime();
+  await runtime.zuzu_run(`
+    from foo/bar import answer;
+    say answer;
+  `);
+</script>
+```
+
 The main bundle includes worker source by default. If you want the browser to load the worker as a separate file, keep `zuzu-browser-worker.min.js` beside the main bundle and pass a `workerUrl` option when creating a runtime.
 
 ## Bundled Modules
