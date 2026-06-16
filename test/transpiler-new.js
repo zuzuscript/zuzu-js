@@ -286,8 +286,9 @@ for ( const source of [
 		}
 	` );
 	assert.match( js, /__zuzu_switch\( "beta", "eq"/ );
-	assert.match( js, /values: \[ "alpha" \]/ );
-	assert.match( js, /values: \[ "beta", "gamma" \]/ );
+	assert.match( js, /tests: \[ function\( __zuzu_switch_value \)/ );
+	assert.match( js, /__zuzu_str_eq\( __zuzu_switch_value, "alpha" \)/ );
+	assert.match( js, /__zuzu_str_eq\( __zuzu_switch_value, "gamma" \)/ );
 	assert.match( js, /return true;/ );
 	assert.doesNotMatch( js, /let __zuzu_switch_result :=/ );
 }

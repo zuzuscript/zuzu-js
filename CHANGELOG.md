@@ -9,6 +9,8 @@ and this project roughly adheres to [Semantic Versioning](https://semver.org/spe
 
 ### Added
 
+- `switch` case values can now override the switch comparator with a
+  comparison operator prefix, such as `case ~ /^Rob/` or `case eqi "Bob"`.
 - Added `ZuzuBrowser.addModule(moduleName, url)` for browser runtimes so
   whitelisted remote ZuzuScript modules can be fetched, parsed, imported, and
   cached on first use; the browser distribution ZIP README now documents this
