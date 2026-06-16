@@ -23,7 +23,11 @@ and this project roughly adheres to [Semantic Versioning](https://semver.org/spe
   unordered Bags no longer expose `get()`. Zuzu Array calls now consistently
   use Zuzu collection semantics instead of native JS method arities, Set
   `clear()` returns the Set, Dict `keys()`/`values()`/`enumerate()` return
-  Set/Bag/Bag, and PairList exposes `is_empty()`.
+  Set/Bag/Bag, PairList exposes `is_empty()`, and Set exposes
+  `push_weak()` as an alias for `add_weak()`. `Array.get()` now requires an
+  index, `get()`/`set()`/`set_weak()` count negative indexes from the end,
+  Array callback methods reject missing or extra callback arguments, and
+  `sample()`/`shuffle()` return randomised non-mutating results.
 - Dynamic method calls whose method expression evaluates to a Method value now
   invoke that method with the syntactic receiver, matching zuzu-perl and
   zuzu-rust, and computed method-call receivers are evaluated once.
