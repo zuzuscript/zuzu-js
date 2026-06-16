@@ -20,7 +20,10 @@ and this project roughly adheres to [Semantic Versioning](https://semver.org/spe
 
 - Collection parity fixes: `Array.join()` now supports an unstringable-value
   substitute or callback, `Bag.remove()` removes every matching value, and
-  unordered Bags no longer expose `get()`.
+  unordered Bags no longer expose `get()`. Zuzu Array calls now consistently
+  use Zuzu collection semantics instead of native JS method arities, Set
+  `clear()` returns the Set, Dict `keys()`/`values()`/`enumerate()` return
+  Set/Bag/Bag, and PairList exposes `is_empty()`.
 - Dynamic method calls whose method expression evaluates to a Method value now
   invoke that method with the syntactic receiver, matching zuzu-perl and
   zuzu-rust, and computed method-call receivers are evaluated once.
