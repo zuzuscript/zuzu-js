@@ -37,6 +37,12 @@ const result = runtime.runSource( `
 	);
 
 	is(
+		inspect_named( "a", length: 42, method: "GET" ),
+		"a:length,method:42,GET",
+		"wordlike named argument keys may use keyword tokens",
+	);
+
+	is(
 		duplicate_values( ...{{ x: 1, x: 2 }} ),
 		"1,2",
 		"pairlist argument spread preserves order and duplicate keys",
@@ -131,5 +137,5 @@ const result = runtime.runSource( `
 `, { filename: '/tmp/argument-spread.zzs' } );
 
 assert.equal( result.status, 0, result.stderr );
-assert.match( result.stdout, /1\.\.12/u );
+assert.match( result.stdout, /1\.\.13/u );
 assert.doesNotMatch( result.stdout, /^not ok/mu );

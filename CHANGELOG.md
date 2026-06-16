@@ -19,6 +19,8 @@ and this project roughly adheres to [Semantic Versioning](https://semver.org/spe
 - Dynamic method calls whose method expression evaluates to a Method value now
   invoke that method with the syntactic receiver, matching zuzu-perl and
   zuzu-rust, and computed method-call receivers are evaluated once.
+- Bare wordlike named-argument keys such as `length: 42` now parse like
+  the same unquoted keys in Dict and PairList literals.
 
 ## 0.4.0 - 2026-06-12
 
