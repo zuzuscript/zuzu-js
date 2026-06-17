@@ -382,7 +382,9 @@ function encodeCodeRecord( value, state, kind, preferredName = null ) {
 	const bindingName = marshalBindingName( preferredName || meta.name, id );
 	const captures = [];
 	const dependencies = [];
-	for ( const [ name, captured ] of Object.entries( meta.captures || {} ).sort() ) {
+	for ( const [ name, captured ] of Object.entries( meta.captures || {} ).sort(
+		( left, right ) => left[0].localeCompare( right[0] )
+	) ) {
 		if ( isFunctionValue( captured ) ) {
 			dependencies.push( [ 0, encodeFunctionCode( captured, state, name ) ] );
 		}

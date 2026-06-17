@@ -52,11 +52,20 @@ function collectZtestsWithOptions( options = {} ) {
 	return out.sort();
 }
 
+function prependZuzuLibPath( modulePath, existing = process.env.ZUZULIB ) {
+	const paths = [ modulePath ];
+	if ( existing ) {
+		paths.push( ...String( existing ).split( path.delimiter ).filter( Boolean ) );
+	}
+	return [ ...new Set( paths ) ].join( path.delimiter );
+}
+
 
 const repoRoot = projectPaths.projectRoot;
 process.chdir( repoRoot );
 process.env.ZUZU = './bin/zuzu-js';
 process.env.FIXTURE_DIR = projectPaths.stdlibFixtureRoot;
+process.env.ZUZULIB = prependZuzuLibPath( projectPaths.stdlibTestModuleRoot );
 let selectedTranspiler = parseTranspilerArg( process.argv );
 if ( selectedTranspiler != null ) {
 	try {
@@ -123,6 +132,7 @@ function runTestFile( rel ) {
 			...process.env,
 			ZUZU: './bin/zuzu-js',
 			FIXTURE_DIR: projectPaths.stdlibFixtureRoot,
+			ZUZULIB: prependZuzuLibPath( projectPaths.stdlibTestModuleRoot ),
 		},
 		encoding: 'utf8',
 		maxBuffer: 64 * 1024 * 1024,
