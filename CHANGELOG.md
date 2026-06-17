@@ -15,9 +15,19 @@ and this project roughly adheres to [Semantic Versioning](https://semver.org/spe
   whitelisted remote ZuzuScript modules can be fetched, parsed, imported, and
   cached on first use; the browser distribution ZIP README now documents this
   API.
+- Added logical operators `nor`/`⊽`, `xnor`/`↔`, `onlyif`/`⊨`,
+  `butnot`/`⊭`, plus the value-preserving `and?`/`⋀?`, `or?`/`⋁?`,
+  `xor?`/`⊻?`, `xnor?`/`↔?`, `nand?`/`⊼?`, `nor?`/`⊽?`,
+  `onlyif?`/`⊨?`, and `butnot?`/`⊭?` variants.
 
 ### Fixed
 
+- Boolean operators `not`, `!`, `¬`, `and`, `⋀`, `or`, `⋁`, `xor`, `⊻`,
+  `nand`, and `⊼` now return Boolean values instead of numeric `0`/`1`
+  values.
+- Logical operator precedence now matches the language definition: `and`/`nand`
+  bind tighter than `xor`, which binds tighter than `or`. The `⊤` and `⊥`
+  Boolean literals are also now accepted by the JS lexer.
 - Collection parity fixes: `Array.join()` now supports an unstringable-value
   substitute or callback, `Bag.remove()` removes every matching value, and
   unordered Bags no longer expose `get()`. Zuzu Array calls now consistently
