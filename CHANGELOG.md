@@ -14,6 +14,9 @@ and this project roughly adheres to [Semantic Versioning](https://semver.org/spe
 - `Path.tempfile()` and `Path.tempdir()` now attach lifecycle cleanup to the
   returned `Path` object, deleting temporary files and recursively deleting
   temporary directories when `__demolish__` would run.
+- Returned collections now correctly keep destructible values alive until the
+  collection itself is released, fixing premature cleanup of `Path.tempdir()`
+  roots used by Zuzuzoo install and source metadata operations.
 
 ## 0.5.0 - 2026-06-17
 
