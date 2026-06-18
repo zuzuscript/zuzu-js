@@ -8,6 +8,30 @@ const { Task, traceBlockingOperation } = require( './task' );
 
 let runtimePolicy = {};
 
+function makeTempFilePath() {
+	for ( let attempt = 0; attempt < 1000; attempt++ ) {
+		const nonce = `${process.pid}-${Date.now()}-${attempt}-${Math.random().toString( 36 ).slice( 2 )}`;
+		const file = path.join( os.tmpdir(), `zuzu-js-${nonce}.tmp` );
+		let fd = null;
+		try {
+			fd = fs.openSync( file, 'wx' );
+			return file;
+		}
+		catch ( err ) {
+			if ( err && err.code === 'EEXIST' ) {
+				continue;
+			}
+			throw err;
+		}
+		finally {
+			if ( fd !== null ) {
+				fs.closeSync( fd );
+			}
+		}
+	}
+	throw new Error( 'IOError: could not create temporary file' );
+}
+
 function typeName( value ) {
 	if ( value == null ) {
 		return 'Null';
@@ -204,7 +228,7 @@ function statToDict( stats ) {
 }
 
 class Path {
-	constructor( rawPath ) {
+	constructor( rawPath, options = {} ) {
 		const pathValue = (
 			rawPath
 			&& typeof rawPath === 'object'
@@ -227,6 +251,25 @@ class Path {
 		this.value = String( pathValue ?? '' );
 		this._linePos = 0;
 		this._lineMode = 'text';
+		this._tempCleanup = options.tempCleanup || null;
+	}
+
+	__demolish__() {
+		const cleanup = this._tempCleanup;
+		this._tempCleanup = null;
+		if ( cleanup === 'dir' ) {
+			try {
+				fs.rmSync( this.value, { recursive: true, force: true } );
+			}
+			catch ( _err ) {}
+		}
+		else if ( cleanup === 'file' ) {
+			try {
+				fs.rmSync( this.value, { force: true } );
+			}
+			catch ( _err ) {}
+		}
+		return null;
 	}
 
 	to_String() { return this.value; }
@@ -453,11 +496,13 @@ class Path {
 
 	static cwd() { return new Path( process.cwd() ); }
 	static tempfile() {
-		const dir = fs.mkdtempSync( path.join( os.tmpdir(), 'zuzu-js-' ) );
-		return new Path( path.join( dir, 'tmp.txt' ) );
+		return new Path( makeTempFilePath(), { tempCleanup: 'file' } );
 	}
 	static tempdir() {
-		return new Path( fs.mkdtempSync( path.join( os.tmpdir(), 'zuzu-js-dir-' ) ) );
+		return new Path(
+			fs.mkdtempSync( path.join( os.tmpdir(), 'zuzu-js-dir-' ) ),
+			{ tempCleanup: 'dir' }
+		);
 	}
 	static join( parts ) { return new Path( path.join( ...parts.map( (p) => String( p ) ) ) ); }
 	static split( source ) { return path.normalize( String( source ) ).split( path.sep ).filter( Boolean ); }

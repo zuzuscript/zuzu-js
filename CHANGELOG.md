@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project roughly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+- The `?:` operator now preserves any defined left-hand value and falls back
+  only when the left-hand value is null, instead of using truthiness.
+- `Path.tempfile()` and `Path.tempdir()` now attach lifecycle cleanup to the
+  returned `Path` object, deleting temporary files and recursively deleting
+  temporary directories when `__demolish__` would run.
+
 ## 0.5.0 - 2026-06-17
 
 ### Added
