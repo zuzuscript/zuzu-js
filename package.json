@@ -1,6 +1,6 @@
 {
   "name": "zuzu-js",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "JavaScript runtime, compiler, and browser bundle for ZuzuScript.",
   "main": "lib/zuzu.js",
   "bin": {
