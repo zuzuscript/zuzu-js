@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project roughly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+- Switch case and default bodies now have access to the active switch value
+  via `^^`, including through fallthrough and async execution paths.
+
+
 ## 0.6.0 - 2026-06-19
 
 ### Fixed
