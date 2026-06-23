@@ -16,6 +16,9 @@ and this project roughly adheres to [Semantic Versioning](https://semver.org/spe
 
 - `switch` no longer executes the `default` block after a matched case unless
   fall-through was requested with `continue`.
+- Member-access parsing now treats identifier-like keys in braces (for
+  example `{ meta }`) as string literals, which removes incorrect syntax
+  mismatches for valid member expression forms.
 
 ## 0.6.0 - 2026-06-19
 

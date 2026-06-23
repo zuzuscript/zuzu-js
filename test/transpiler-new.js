@@ -39,6 +39,13 @@ const {
 }
 
 {
+	const ast = parse( tokenize( 'report{meta};' ) );
+	assert.equal( ast.body[0].expression.type, 'MemberExpression' );
+	assert.equal( ast.body[0].expression.property.type, 'StringLiteral' );
+	assert.equal( ast.body[0].expression.property.value, 'meta' );
+}
+
+{
 	const js = transpileWithoutFallback( 'let msg := `a${1+2}b`; let items := << 1, 2 >>; let bag := <<< 1, 2 >>>; let pl := {{ foo: 1, "bar": 2 }};' );
 	assert.match( js, /let msg = __zuzu_concat\(\s*__zuzu_concat\(\s*"a",\s*__zuzu_add\(\s*1,\s*2\s*\)\s*\),\s*"b"\s*\);/ );
 	assert.match( js, /let items = __zuzu_set\(\s*\[\s*1,\s*2\s*\]\s*\);/ );
