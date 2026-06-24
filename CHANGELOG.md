@@ -9,6 +9,7 @@ and this project roughly adheres to [Semantic Versioning](https://semver.org/spe
 
 ### Added
 
+- Added parser/runtime support for the newline-free `print` statement.
 - Switch case and default bodies now have access to the active switch value
   via `^^`, including through fallthrough and async execution paths.
 
@@ -16,6 +17,11 @@ and this project roughly adheres to [Semantic Versioning](https://semver.org/spe
 
 - `switch` no longer executes the `default` block after a matched case unless
   fall-through was requested with `continue`.
+- `std/proc` now inherits stdout/stderr for uncaptured command output and
+  applies environment overrides consistently in synchronous and asynchronous
+  process runs.
+- `say`, `print`, and string interpolation now share output rendering for
+  nullish values and IEEE numeric edge cases.
 - Member-access parsing now treats identifier-like keys in braces (for
   example `{ meta }`) as string literals, which removes incorrect syntax
   mismatches for valid member expression forms.

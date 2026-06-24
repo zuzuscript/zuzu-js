@@ -78,6 +78,25 @@ function cwdErrorResult( cmd, options, message ) {
 	};
 }
 
+function buildProcEnv( options ) {
+	const hasEnv = isPlainObject( options.env ) ? options.env : null;
+	if ( !hasEnv ) {
+		return null;
+	}
+	const env = { ...process.env };
+	if ( hasEnv ) {
+		for ( const [ key, value ] of Object.entries( hasEnv ) ) {
+			if ( value == null ) {
+				delete env[key];
+			}
+			else {
+				env[key] = String( value );
+			}
+		}
+	}
+	return env;
+}
+
 function normalizeCwd( options ) {
 	if ( !Object.prototype.hasOwnProperty.call( options, 'cwd' ) ) {
 		return { cwd: null };
@@ -129,7 +148,6 @@ function runCommand( cmd, options = {} ) {
 		: true;
 	const mergeStderr = Boolean( options.merge_stderr );
 	const timeoutSeconds = Number( options.timeout || 0 );
-	const envOverrides = isPlainObject( options.env ) ? options.env : null;
 	const cwd = normalizeCwd( options );
 	if ( cwd.error ) {
 		return cwdErrorResult( cmd, options, cwd.error );
@@ -144,8 +162,8 @@ function runCommand( cmd, options = {} ) {
 		maxBuffer: 10 * 1024 * 1024,
 		stdio: [
 			stdinFd,
-			captureStdout ? 'pipe' : 'ignore',
-			mergeStderr ? 'pipe' : ( captureStderr ? 'pipe' : 'ignore' ),
+			captureStdout ? 'pipe' : 'inherit',
+			mergeStderr ? 'pipe' : ( captureStderr ? 'pipe' : 'inherit' ),
 		],
 	};
 
@@ -158,16 +176,9 @@ function runCommand( cmd, options = {} ) {
 		spawnOptions.cwd = cwd.cwd;
 	}
 
-	if ( envOverrides ) {
-		spawnOptions.env = { ...process.env };
-		for ( const [ key, value ] of Object.entries( envOverrides ) ) {
-			if ( value == null ) {
-				delete spawnOptions.env[key];
-			}
-			else {
-				spawnOptions.env[key] = String( value );
-			}
-		}
+	const env = buildProcEnv( options );
+	if ( env != null ) {
+		spawnOptions.env = env;
 	}
 
 	let spawned;
@@ -245,7 +256,6 @@ function runCommandAsync( cmd, options = {} ) {
 		: true;
 	const mergeStderr = Boolean( options.merge_stderr );
 	const timeoutSeconds = Number( options.timeout || 0 );
-	const envOverrides = isPlainObject( options.env ) ? options.env : null;
 	const cwd = normalizeCwd( options );
 	if ( cwd.error ) {
 		task._resolve( cwdErrorResult( cmd, options, cwd.error ) );
@@ -254,20 +264,13 @@ function runCommandAsync( cmd, options = {} ) {
 	const spawnOptions = {
 		stdio: [
 			'pipe',
-			captureStdout ? 'pipe' : 'ignore',
-			mergeStderr ? 'pipe' : ( captureStderr ? 'pipe' : 'ignore' ),
+			captureStdout ? 'pipe' : 'inherit',
+			mergeStderr ? 'pipe' : ( captureStderr ? 'pipe' : 'inherit' ),
 		],
 	};
-	if ( envOverrides ) {
-		spawnOptions.env = { ...process.env };
-		for ( const [ key, value ] of Object.entries( envOverrides ) ) {
-			if ( value == null ) {
-				delete spawnOptions.env[key];
-			}
-			else {
-				spawnOptions.env[key] = String( value );
-			}
-		}
+	const env = buildProcEnv( options );
+	if ( env != null ) {
+		spawnOptions.env = env;
 	}
 	if ( cwd.cwd != null ) {
 		spawnOptions.cwd = cwd.cwd;
