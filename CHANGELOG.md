@@ -9,12 +9,17 @@ and this project roughly adheres to [Semantic Versioning](https://semver.org/spe
 
 ### Added
 
+- Added `std/string.repeat` for repeating `String` or `BinaryString` values
+  with optional same-type separators.
 - Added parser/runtime support for the newline-free `print` statement.
 - Switch case and default bodies now have access to the active switch value
   via `^^`, including through fallthrough and async execution paths.
 
 ### Fixed
 
+- `std/string.sprint` now supports the documented Perl/Rust-compatible
+  formatter subset, including alignment, padding, precision, percent escapes,
+  integer bases, signs, and exponential/general numeric conversions.
 - `switch` no longer executes the `default` block after a matched case unless
   fall-through was requested with `continue`.
 - `std/proc` now inherits stdout/stderr for uncaptured command output and

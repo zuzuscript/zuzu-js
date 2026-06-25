@@ -174,32 +174,179 @@ function replace( text, pattern, replacement, flags = '' ) {
 	return toStringValue( text ).replace( normalizePattern( pattern, flags ), toStringValue( replacement ) );
 }
 
+function formatWidth( text, width, flags, zeroPad = false ) {
+	if ( width == null ) {
+		return text;
+	}
+	const target = Number( width );
+	const byteLength = new TextEncoder().encode( text ).length;
+	if ( byteLength >= target ) {
+		return text;
+	}
+	const padChar = zeroPad && !flags.includes( '-' ) ? '0' : ' ';
+	const fill = padChar.repeat( target - byteLength );
+	if ( flags.includes( '-' ) ) {
+		return `${text}${fill}`;
+	}
+	if ( padChar === '0' && /^[+-]/u.test( text ) ) {
+		return `${text[0]}${fill}${text.slice( 1 )}`;
+	}
+	return `${fill}${text}`;
+}
+
+function formatInteger( value, radix, uppercase = false, signed = true ) {
+	const number = Number( value ?? 0 );
+	const integer = Math.trunc( number );
+	const negative = integer < 0;
+	const magnitude = signed ? Math.abs( integer ) : integer >>> 0;
+	let rendered = magnitude.toString( radix );
+	if ( uppercase ) {
+		rendered = rendered.toUpperCase();
+	}
+	return signed && negative ? `-${rendered}` : rendered;
+}
+
+function signPrefix( rendered, number, flags ) {
+	if ( rendered.startsWith( '-' ) ) {
+		return rendered;
+	}
+	if ( number < 0 ) {
+		return `-${rendered}`;
+	}
+	if ( flags.includes( '+' ) ) {
+		return `+${rendered}`;
+	}
+	if ( flags.includes( ' ' ) ) {
+		return ` ${rendered}`;
+	}
+	return rendered;
+}
+
+function normalizeExponent( rendered ) {
+	return rendered.replace( /([eE][+-])(\d)$/u, '$10$2' );
+}
+
+function trimGeneralFloat( rendered ) {
+	return rendered
+		.replace( /(\.\d*?)0+(e[+-]?\d+)$/iu, '$1$2' )
+		.replace( /\.e/iu, 'e' )
+		.replace( /(\.\d*?)0+$/u, '$1' )
+		.replace( /\.$/u, '' );
+}
+
+function formatFloat( number, precision, kind ) {
+	const digits = precision == null ? 6 : Number( precision );
+	if ( kind === 'f' ) {
+		return number.toFixed( digits );
+	}
+	if ( kind === 'e' ) {
+		return normalizeExponent( number.toExponential( digits ) );
+	}
+	if ( kind === 'E' ) {
+		return normalizeExponent( number.toExponential( digits ).toUpperCase() );
+	}
+	const significant = precision == null ? 6 : Number( precision );
+	const rendered = trimGeneralFloat( number.toPrecision( significant ) );
+	return kind === 'G' ? rendered.toUpperCase() : rendered;
+}
+
 function sprint( format, ...args ) {
 	let idx = 0;
-	return toStringValue( format ).replace( /%([0-9]+)?(?:\.([0-9]+))?([sdfc])/gu, ( _token, width, precision, kind ) => {
+	const source = toStringValue( format );
+	return source.replace( /%([-+ 0#]*)([0-9]+)?(?:\.([0-9]+))?([sdiuoxXfeEgGc%])/gu, ( token, rawFlags, width, precision, kind ) => {
+		if ( kind === '%' ) {
+			return '%';
+		}
 		const value = args[idx++];
+		const flags = rawFlags || '';
 		let out = '';
-		if ( kind === 'd' ) {
-			out = String( Math.trunc( Number( value ?? 0 ) ) );
-		}
-		else if ( kind === 'f' ) {
-			const num = Number( value ?? 0 );
-			out = precision != null ? num.toFixed( Number( precision ) ) : String( num );
-		}
-		else if ( kind === 'c' ) {
-			out = String.fromCharCode( Number( value ?? 0 ) );
-		}
-		else {
+		let zeroPad = false;
+		if ( kind === 's' ) {
 			out = toStringValue( value );
-		}
-		if ( width != null ) {
-			const target = Number( width );
-			if ( out.length < target ) {
-				out = `${' '.repeat( target - out.length )}${out}`;
+			if ( precision != null ) {
+				out = [ ...out ].slice( 0, Number( precision ) ).join( '' );
 			}
 		}
-		return out;
+		else if ( kind === 'd' || kind === 'i' ) {
+			const number = Math.trunc( Number( value ?? 0 ) );
+			out = signPrefix( String( Math.abs( number ) ), number, flags );
+			if ( number < 0 ) {
+				out = `-${Math.abs( number )}`;
+			}
+			zeroPad = flags.includes( '0' );
+		}
+		else if ( kind === 'u' ) {
+			out = formatInteger( value, 10, false, false );
+			zeroPad = flags.includes( '0' );
+		}
+		else if ( kind === 'x' || kind === 'X' ) {
+			out = formatInteger( value, 16, kind === 'X', true );
+			if ( flags.includes( '#' ) && !out.startsWith( '-' ) && Number( value ?? 0 ) !== 0 ) {
+				out = `${kind === 'X' ? '0X' : '0x'}${out}`;
+			}
+			zeroPad = flags.includes( '0' );
+		}
+		else if ( kind === 'o' ) {
+			out = formatInteger( value, 8, false, true );
+			if ( flags.includes( '#' ) && !out.startsWith( '-' ) && !out.startsWith( '0' ) ) {
+				out = `0${out}`;
+			}
+			zeroPad = flags.includes( '0' );
+		}
+		else if ( kind === 'f' || kind === 'e' || kind === 'E' || kind === 'g' || kind === 'G' ) {
+			const number = Number( value ?? 0 );
+			const negative = number < 0 || Object.is( number, -0 );
+			out = formatFloat( Math.abs( number ), precision, kind );
+			out = signPrefix( out, negative ? -1 : number, flags );
+			zeroPad = flags.includes( '0' );
+		}
+		else if ( kind === 'c' ) {
+			out = String.fromCodePoint( Number( value ?? 0 ) );
+		}
+		else {
+			return token;
+		}
+		return formatWidth( out, width, flags, zeroPad );
 	} );
+}
+
+function repeat( count, text, separator = null ) {
+	if ( arguments.length < 2 || arguments.length > 3 ) {
+		throw new Error( 'repeat() expects two or three arguments' );
+	}
+	const repetitions = Math.floor( Number( count ?? 0 ) );
+	if ( repetitions < 0 ) {
+		throw new Error( 'repeat() count cannot be negative' );
+	}
+
+	const textIsBinary = text instanceof BinaryString;
+	const separatorIsBinary = separator instanceof BinaryString;
+	if ( separator != null && textIsBinary !== separatorIsBinary ) {
+		throw new Error( 'TypeException: repeat() cannot mix String and BinaryString values' );
+	}
+
+	if ( textIsBinary ) {
+		const source = text.bytes;
+		const sep = separator == null ? new Uint8Array( 0 ) : separator.bytes;
+		const total = repetitions === 0
+			? 0
+			: source.length * repetitions + sep.length * ( repetitions - 1 );
+		const out = new Uint8Array( total );
+		let offset = 0;
+		for ( let i = 0; i < repetitions; i++ ) {
+			if ( i > 0 ) {
+				out.set( sep, offset );
+				offset += sep.length;
+			}
+			out.set( source, offset );
+			offset += source.length;
+		}
+		return new BinaryString( out );
+	}
+
+	const value = toStringValue( text );
+	const sep = separator == null ? '' : toStringValue( separator );
+	return Array.from( { length: repetitions }, () => value ).join( sep );
 }
 
 function join( separator, values ) {
@@ -305,6 +452,7 @@ module.exports = {
 	pad,
 	pattern_to_regexp,
 	quotemeta,
+	repeat,
 	rindex,
 	replace,
 	search,
